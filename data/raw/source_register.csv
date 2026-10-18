@@ -1,0 +1,4 @@
+source_name,source_url,what_is_included,limitations
+Gujarat Gas directory,https://gujaratgas.com/cng/cng-stations/,"Station names/addresses/types in extracted directory text","Current operation and exact coordinates not independently verified"
+CGD outlet mapping repository,https://github.com/herrrickshaw/cng-cgd-retail-outlet-mapping,"Downloaded outlets_cgd.csv.gz; Gujarat has_cng=True subset contains 1510 records","Repository field is not proof of current operation; coordinate matches require review"
+Maps of India CNG Finder,https://automobiles.mapsofindia.com/petrol-stations/cngfinder.html,"Potential independent station/location cross-check source","Not yet reconciled row-by-row in this pack"
