@@ -1,0 +1,4 @@
+field,meaning,caveat
+station_id,Stable ID assigned during extraction,Directory extraction ID; not company official ID
+station_name,Station name as extracted,Name may require cleanup
+latitude/longitude,Coordinates from matched CGD outlet when strict match found,Provisional only; manually verify before spatial analysis
