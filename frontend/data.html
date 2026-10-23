@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Center · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item">Station Explorer</a>
+      <a href="map.html" class="nav-item">Network Map</a>
+      <a href="forecast.html" class="nav-item">Demand Forecast</a>
+      <a href="sites.html" class="nav-item">Site Selection</a>
+      <a href="simulator.html" class="nav-item">What-if Simulator</a>
+      <a href="data.html" class="nav-item active">Data Center</a>
+      <a href="reports.html" class="nav-item">Reports</a>
+    </nav>
+    <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Data Center</h1>
+          <p style="font-size:.75rem;color:#64748b">Import stations, sales, capacity & RTO datasets</p>
+        </div>
+      </div>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem">
+      <div class="banner" style="margin-bottom:1.25rem">
+        Currently running on <strong>SYNTHETIC DEMO</strong> data. The attached Gujarat stations file (344 records) can be used as the station master after coordinate enrichment.
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Upload datasets</h3>
+          <p class="desc">Replace synthetic layers with real operational data</p>
+          <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>
+              <label style="font-size:.8rem;font-weight:600;color:#475569;display:block;margin-bottom:.35rem">Stations master (CSV / XLSX)</label>
+              <input type="file" accept=".csv,.xlsx" style="font-size:.8rem" />
+            </div>
+            <div>
+              <label style="font-size:.8rem;font-weight:600;color:#475569;display:block;margin-bottom:.35rem">Daily sales (station_id, date, kg)</label>
+              <input type="file" accept=".csv" style="font-size:.8rem" />
+            </div>
+            <div>
+              <label style="font-size:.8rem;font-weight:600;color:#475569;display:block;margin-bottom:.35rem">Capacity & RTO growth rates</label>
+              <input type="file" accept=".csv" style="font-size:.8rem" />
+            </div>
+            <button class="btn btn-primary" style="align-self:flex-start" onclick="alert('Static prototype — file parsing is simulated. In production this would update the digital twin.')">Process uploads</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Currently loaded</h3>
+          <p class="desc">Status of each data layer</p>
+          <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.875rem">
+            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+              <span>Stations</span><span style="color:#059669;font-weight:600">344 (Gujarat directory)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+              <span>Sales records</span><span style="color:#d97706;font-weight:600">Synthetic 28,560</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+              <span>Capacity profiles</span><span style="color:#d97706;font-weight:600">Synthetic 312</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+              <span>RTO growth rates</span><span style="color:#d97706;font-weight:600">Synthetic district-level</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:.5rem 0">
+              <span>Coordinates verified</span><span style="color:#dc2626;font-weight:600">0 / 344</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>

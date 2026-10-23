@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demand Forecast · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item">Station Explorer</a>
+      <a href="map.html" class="nav-item">Network Map</a>
+      <a href="forecast.html" class="nav-item active">Demand Forecast</a>
+      <a href="sites.html" class="nav-item">Site Selection</a>
+      <a href="simulator.html" class="nav-item">What-if Simulator</a>
+      <a href="data.html" class="nav-item">Data Center</a>
+      <a href="reports.html" class="nav-item">Reports</a>
+    </nav>
+    <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Station-level Demand Forecast</h1>
+          <p style="font-size:.75rem;color:#64748b">Sales · RTO growth · Capacity-aware models</p>
+        </div>
+      </div>
+      <span class="badge">SYNTHETIC DEMO</span>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem">
+      <div class="kpi-grid" style="margin-bottom:1.25rem">
+        <div class="kpi"><div class="label">Network peak (14-d)</div><div class="value">94.2k</div><div class="sub" style="color:#d97706">+8% vs baseline</div></div>
+        <div class="kpi"><div class="label">Stations at risk</div><div class="value">17</div><div class="sub">>100% capacity</div></div>
+        <div class="kpi"><div class="label">Avg utilization</div><div class="value">78%</div><div class="sub" style="color:#059669">Healthy band</div></div>
+        <div class="kpi"><div class="label">RTO growth signal</div><div class="value">+9.4%</div><div class="sub">YoY vehicle regs</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:1.25rem">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem">
+          <div>
+            <h3>Detailed station forecast</h3>
+            <p class="desc" style="margin:0">Actual · Baseline · RTO-driven · Capacity ceiling</p>
+          </div>
+          <select id="stSelect" style="width:auto;min-width:260px">
+            <option value="0">GGL-AHM-008 · Ahmedabad (High risk)</option>
+            <option value="1">GGL-SUR-004 · Surat Ring Road</option>
+            <option value="2">GGL-VAD-002 · Vadodara Bypass</option>
+            <option value="3">GGL-0148 · Icchapore Hazira</option>
+            <option value="4">GGL-NEW-031 · Kalol</option>
+          </select>
+        </div>
+        <div class="chart-box" style="height:320px"><canvas id="fcChart"></canvas></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Model ensemble (demo)</h3>
+          <p class="desc">How the forecast is constructed</p>
+          <ul style="font-size:.85rem;color:#475569;padding-left:1.1rem;display:flex;flex-direction:column;gap:.5rem">
+            <li><strong>Seasonal-naive</strong> – same weekday last year + 7-day MA</li>
+            <li><strong>RTO driver</strong> – district vehicle registration growth as exogenous factor</li>
+            <li><strong>Capacity check</strong> – Mother vs Daughter Booster differentiated</li>
+            <li><strong>Shock layer</strong> – festival / monsoon multipliers (see Simulator)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Utilization distribution</h3>
+          <p class="desc">Share of stations by load band</p>
+          <div class="chart-box" style="height:180px"><canvas id="utilChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    const series = {
+      0: { actual:[2100,1980,2250,2050,2400,2150,2300,2200,2450,2100,2350,2500,2280,2420], fc:[2480,2550,2600,2520,2700,2650,2800,2750,2900,2850,2950,3000,3100,3050,3200], cap:2600 },
+      1: { actual:[1800,1750,1920,1850,2050,1900,2100,1950,2200,2000,2150,2300,2180,2250], fc:[2320,2400,2480,2420,2550,2500,2650,2580,2700,2650,2780,2820,2900,2850,2950], cap:1980 },
+      2: { actual:[2000,1950,2150,2050,2250,2100,2300,2180,2400,2200,2350,2500,2380,2450], fc:[2520,2600,2680,2620,2750,2700,2850,2780,2900,2850,2980,3020,3100,3050,3150], cap:2380 },
+      3: { actual:[4800,4600,5100,4900,5300,5000,5450,5150,5600,5200,5500,5800,5550,5700], fc:[5850,6000,6150,6050,6300,6200,6450,6350,6600,6500,6750,6800,7000,6900,7150], cap:5500 },
+      4: { actual:[2800,2700,2950,2850,3100,2900,3200,3000,3300,3100,3250,3400,3300,3350], fc:[3450,3550,3650,3580,3750,3700,3850,3780,3950,3900,4050,4100,4200,4150,4300], cap:3400 }
+    };
+
+    let chart;
+    function draw(idx) {
+      const s = series[idx];
+      const labels = Array.from({length:30}, (_,i) => `D${i+1}`);
+      const actual = [...s.actual, ...Array(16).fill(null)];
+      const forecast = [...Array(14).fill(null), ...s.fc];
+      const capacity = Array(30).fill(s.cap);
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById('fcChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label:'Actual', data:actual, borderColor:'#059669', backgroundColor:'rgba(5,150,105,.08)', fill:true, tension:.3, pointRadius:2 },
+            { label:'Forecast', data:forecast, borderColor:'#f59e0b', borderDash:[5,4], tension:.3, pointRadius:2 },
+            { label:'Capacity', data:capacity, borderColor:'#ef4444', borderDash:[2,2], borderWidth:1.5, pointRadius:0 }
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } },
+          scales:{
+            x:{ grid:{display:false}, ticks:{ maxTicksLimit:10, font:{size:10}, color:'#94a3b8'} },
+            y:{ grid:{color:'#f1f5f9'}, ticks:{font:{size:10}, color:'#94a3b8'} }
+          }
+        }
+      });
+    }
+    document.getElementById('stSelect').addEventListener('change', e => draw(+e.target.value));
+    draw(0);
+
+    new Chart(document.getElementById('utilChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['>100% (risk)', '85–100%', '70–85%', '<70%'],
+        datasets: [{ data:[17,48,112,167], backgroundColor:['#ef4444','#f59e0b','#10b981','#94a3b8'], borderWidth:0 }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'right', labels:{ boxWidth:10, font:{size:11} } } }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item">Station Explorer</a>
+      <a href="map.html" class="nav-item">Network Map</a>
+      <a href="forecast.html" class="nav-item">Demand Forecast</a>
+      <a href="sites.html" class="nav-item">Site Selection</a>
+      <a href="simulator.html" class="nav-item">What-if Simulator</a>
+      <a href="data.html" class="nav-item">Data Center</a>
+      <a href="reports.html" class="nav-item active">Reports</a>
+    </nav>
+    <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Reports & Exports</h1>
+          <p style="font-size:.75rem;color:#64748b">Planning packs and risk summaries</p>
+        </div>
+      </div>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem">
+        <div class="card" style="cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('risk')">
+          <h3>Network Risk Summary</h3>
+          <p class="desc">Stations exceeding capacity, top risk signals, recommended actions</p>
+          <span style="color:#059669;font-weight:600;font-size:.85rem">Download PDF →</span>
+        </div>
+        <div class="card" style="cursor:pointer" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('sites')">
+          <h3>Site Ranking Pack</h3>
+          <p class="desc">Full ranked list of 28 candidates with scores & drivers</p>
+          <span style="color:#059669;font-weight:600;font-size:.85rem">Download Excel →</span>
+        </div>
+        <div class="card" style="cursor:pointer" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('scenario')">
+          <h3>Scenario Comparison (A/B/C)</h3>
+          <p class="desc">What-if expansion impact on peak utilization by district</p>
+          <span style="color:#059669;font-weight:600;font-size:.85rem">Download PDF →</span>
+        </div>
+        <div class="card" style="cursor:pointer" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('master')">
+          <h3>Station Master Export</h3>
+          <p class="desc">344-station directory with quality flags (duplicate, missing coords)</p>
+          <span style="color:#059669;font-weight:600;font-size:.85rem">Download CSV →</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>About this prototype</h3>
+        <p style="font-size:.875rem;color:#475569;line-height:1.6">
+          <strong>CNG Network Intelligence</strong> is an advanced decision-support demo focused on
+          <strong>station-level demand forecasting</strong>, sales & RTO-driven growth, and optimized network expansion planning
+          for Gujarat CNG infrastructure. Layout and interaction patterns are inspired by the reference digital twin while
+          adding live scenario controls, multi-model forecasts, risk overlays and transparent ranking logic.
+          All numerical forecasts remain synthetic for illustration.
+        </p>
+      </div>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+  <script>
+    function downloadReport(type) {
+      const names = { risk:'Network_Risk_Summary', sites:'Site_Ranking_Pack', scenario:'Scenario_Comparison', master:'Station_Master_344' };
+      // Generate a simple CSV download as demo
+      let content = 'Report Type,Generated,Note\n';
+      content += `${names[type]},${new Date().toISOString()},Synthetic demo export from CNG Network Intelligence\n`;
+      const blob = new Blob([content], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = names[type] + '_demo.csv';
+      a.click();
+    }
+  </script>
+</body>
+</html>

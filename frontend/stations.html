@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Station Explorer · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">CN</div>
+      <div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div>
+    </div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item active">Station Explorer</a>
+      <a href="map.html" class="nav-item">Network Map</a>
+      <a href="forecast.html" class="nav-item">Demand Forecast</a>
+      <a href="sites.html" class="nav-item">Site Selection</a>
+      <a href="simulator.html" class="nav-item">What-if Simulator</a>
+      <a href="data.html" class="nav-item">Data Center</a>
+      <a href="reports.html" class="nav-item">Reports</a>
+    </nav>
+    <div class="user-block">
+      <button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem" id="menuBtn">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Station Explorer</h1>
+          <p style="font-size:.75rem;color:#64748b">Browse, filter & inspect 344 Gujarat CNG stations</p>
+        </div>
+      </div>
+      <span class="badge">344 RECORDS · QUALITY FLAGGED</span>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem">
+      <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
+        <input type="search" id="q" placeholder="Search name, ID, district…" style="flex:1;min-width:200px" />
+        <select id="dist">
+          <option value="">All districts</option>
+          <option>Surat</option><option>Ahmedabad</option><option>Bharuch</option><option>Anand</option>
+          <option>Kheda</option><option>Vadodara</option><option>Panchmahal</option><option>Dahod</option>
+          <option>Navsari</option><option>Valsad</option><option>Gandhinagar</option>
+        </select>
+        <select id="typ">
+          <option value="">All types</option>
+          <option>Mother/Online</option><option>Online</option><option>Daughter Booster</option>
+        </select>
+        <select id="risk">
+          <option value="">Any utilization</option>
+          <option value="high">> 100% (over capacity)</option>
+          <option value="med">85–100%</option>
+          <option value="low">< 85%</option>
+        </select>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto">
+          <table class="data" id="tbl">
+            <thead>
+              <tr>
+                <th>Station ID</th>
+                <th>Name</th>
+                <th>District</th>
+                <th>Type</th>
+                <th>Capacity</th>
+                <th>Peak demand</th>
+                <th>Utilization</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <p style="font-size:.75rem;color:#94a3b8;margin-top:.75rem">Showing enriched sample of 15 stations. Full 344-station master available after coordinate verification & CSV import in Data Center.</p>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    function utilTag(u) {
+      if (u > 1) return `<span class="tag tag-red">${(u*100).toFixed(0)}%</span>`;
+      if (u >= 0.85) return `<span class="tag tag-amber">${(u*100).toFixed(0)}%</span>`;
+      return `<span class="tag tag-green">${(u*100).toFixed(0)}%</span>`;
+    }
+    function render() {
+      const q = (document.getElementById('q').value || '').toLowerCase();
+      const d = document.getElementById('dist').value;
+      const t = document.getElementById('typ').value;
+      const r = document.getElementById('risk').value;
+      const rows = window.STATIONS.filter(s => {
+        const mq = !q || s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.district.toLowerCase().includes(q);
+        const md = !d || s.district === d;
+        const mt = !t || s.type === t;
+        let mr = true;
+        if (r === 'high') mr = s.util > 1;
+        else if (r === 'med') mr = s.util >= 0.85 && s.util <= 1;
+        else if (r === 'low') mr = s.util < 0.85;
+        return mq && md && mt && mr;
+      });
+      document.querySelector('#tbl tbody').innerHTML = rows.map(s => `
+        <tr>
+          <td style="font-family:ui-monospace;color:#059669;font-weight:600">${s.id}</td>
+          <td>${s.name}</td>
+          <td>${s.district}</td>
+          <td><span class="tag">${s.type}</span></td>
+          <td>${s.capacity.toLocaleString()} kg/d</td>
+          <td>${s.peak.toLocaleString()} kg/d</td>
+          <td>${utilTag(s.util)}</td>
+          <td><span class="tag tag-green">Active</span></td>
+        </tr>
+      `).join('') || '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8">No stations match filters</td></tr>';
+    }
+    ['q','dist','typ','risk'].forEach(id => document.getElementById(id).addEventListener('input', render));
+    document.getElementById('dist').addEventListener('change', render);
+    document.getElementById('typ').addEventListener('change', render);
+    document.getElementById('risk').addEventListener('change', render);
+    render();
+  </script>
+</body>
+</html>

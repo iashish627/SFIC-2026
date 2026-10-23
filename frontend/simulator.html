@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What-if Simulator · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item">Station Explorer</a>
+      <a href="map.html" class="nav-item">Network Map</a>
+      <a href="forecast.html" class="nav-item">Demand Forecast</a>
+      <a href="sites.html" class="nav-item">Site Selection</a>
+      <a href="simulator.html" class="nav-item active">What-if Simulator</a>
+      <a href="data.html" class="nav-item">Data Center</a>
+      <a href="reports.html" class="nav-item">Reports</a>
+    </nav>
+    <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">What-if Simulator</h1>
+          <p style="font-size:.75rem;color:#64748b">Compare expansion scenarios & demand shocks</p>
+        </div>
+      </div>
+      <span class="badge">LIVE CONTROLS</span>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.25rem">
+        <div class="card" style="border-left:4px solid #94a3b8">
+          <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:.25rem">SCENARIO A — BASELINE</div>
+          <div style="font-size:1.75rem;font-weight:700" id="scA">17</div>
+          <div style="font-size:.75rem;color:#64748b">stations over capacity</div>
+        </div>
+        <div class="card" style="border-left:4px solid #f59e0b">
+          <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:.25rem">SCENARIO B — +8 SITES</div>
+          <div style="font-size:1.75rem;font-weight:700;color:#d97706" id="scB">6</div>
+          <div style="font-size:.75rem;color:#64748b">stations over capacity</div>
+        </div>
+        <div class="card" style="border-left:4px solid #059669">
+          <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:.25rem">SCENARIO C — +15 SITES</div>
+          <div style="font-size:1.75rem;font-weight:700;color:#059669" id="scC">2</div>
+          <div style="font-size:.75rem;color:#64748b">stations over capacity</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1.25rem">
+        <h3>Peak utilization by district (% of capacity)</h3>
+        <p class="desc">Live comparison of the three expansion strategies</p>
+        <div class="chart-box" style="height:300px"><canvas id="simChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3>Festival / demand shock simulator</h3>
+        <p class="desc">Apply a temporary multiplier (Diwali, Navratri, monsoon recovery) to Scenario A</p>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1.25rem;margin-top:.75rem">
+          <div style="flex:1;min-width:200px">
+            <label style="font-size:.8rem;font-weight:600;color:#475569">Shock multiplier: <span id="shockVal" style="color:#059669">1.25×</span></label>
+            <input type="range" id="shock" min="1.0" max="2.0" step="0.05" value="1.25" style="width:100%;margin-top:.4rem" />
+          </div>
+          <button class="btn btn-primary" onclick="applyShock()">Apply shock to chart</button>
+          <button class="btn btn-ghost" onclick="resetShock()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    const baseA = [122, 121, 115, 108, 105, 109];
+    const baseB = [98, 95, 92, 88, 90, 91];
+    const baseC = [85, 82, 80, 78, 79, 81];
+    const labels = ['Ahmedabad','Surat','Vadodara','Bharuch','Gandhinagar','Anand'];
+
+    const chart = new Chart(document.getElementById('simChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'A — Baseline', data: [...baseA], backgroundColor: '#94a3b8', borderRadius: 4 },
+          { label: 'B — +8 sites', data: [...baseB], backgroundColor: '#f59e0b', borderRadius: 4 },
+          { label: 'C — +15 sites', data: [...baseC], backgroundColor: '#059669', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b' } },
+          y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8' }, title: { display: true, text: '% of capacity', font: { size: 11 }, color: '#64748b' } }
+        }
+      }
+    });
+
+    document.getElementById('shock').addEventListener('input', e => {
+      document.getElementById('shockVal').textContent = (+e.target.value).toFixed(2) + '×';
+    });
+
+    function applyShock() {
+      const m = +document.getElementById('shock').value;
+      chart.data.datasets[0].data = baseA.map(v => Math.round(v * m));
+      chart.update();
+      document.getElementById('scA').textContent = Math.min(17, Math.round(17 * (m - 0.3)));
+    }
+    function resetShock() {
+      document.getElementById('shock').value = 1.25;
+      document.getElementById('shockVal').textContent = '1.25×';
+      chart.data.datasets[0].data = [...baseA];
+      chart.update();
+      document.getElementById('scA').textContent = '17';
+    }
+  </script>
+</body>
+</html>

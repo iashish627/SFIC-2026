@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify OTP · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="auth-page">
+  <div class="auth-card" style="text-align:center">
+    <div style="width:64px;height:64px;margin:0 auto 1.25rem;border-radius:999px;background:#ecfdf5;display:flex;align-items:center;justify-content:center">
+      <svg width="28" height="28" fill="none" stroke="#059669" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+    </div>
+    <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.35rem">Check your email</h1>
+    <p style="color:#64748b;font-size:.875rem;margin-bottom:1.5rem">
+      We sent a 6-digit code to<br>
+      <strong id="emailDisplay" style="color:#059669"></strong>
+    </p>
+
+    <form id="otpForm">
+      <div class="otp-inputs" id="otpInputs" style="margin-bottom:1rem">
+        <input type="text" maxlength="1" inputmode="numeric" />
+        <input type="text" maxlength="1" inputmode="numeric" />
+        <input type="text" maxlength="1" inputmode="numeric" />
+        <input type="text" maxlength="1" inputmode="numeric" />
+        <input type="text" maxlength="1" inputmode="numeric" />
+        <input type="text" maxlength="1" inputmode="numeric" />
+      </div>
+      <p style="font-size:.8rem;color:#94a3b8;margin-bottom:1.25rem">Demo OTP: <strong style="color:#059669;font-family:monospace">123456</strong></p>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:.8rem">Verify & continue →</button>
+    </form>
+
+    <p style="margin-top:1.25rem;font-size:.85rem;color:#64748b">
+      <button id="resend" style="background:none;border:none;color:#059669;font-weight:600;cursor:pointer">Resend in <span id="timer">30</span>s</button>
+    </p>
+    <a href="login.html" style="display:inline-block;margin-top:.75rem;font-size:.8rem;color:#94a3b8">← Back to login</a>
+  </div>
+
+  <script>
+    document.getElementById('emailDisplay').textContent = sessionStorage.getItem('pending_email') || 'user@example.com';
+    const digits = [...document.querySelectorAll('#otpInputs input')];
+    digits.forEach((inp, i) => {
+      inp.addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g,'').slice(0,1);
+        if (e.target.value && i < 5) digits[i+1].focus();
+      });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !e.target.value && i > 0) digits[i-1].focus();
+      });
+      inp.addEventListener('paste', e => {
+        e.preventDefault();
+        const v = (e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,6);
+        v.split('').forEach((c,j) => { if(digits[j]) digits[j].value = c; });
+        if (v.length) digits[Math.min(v.length,5)].focus();
+      });
+    });
+
+    let t = 30;
+    const timer = setInterval(() => {
+      t--;
+      document.getElementById('timer').textContent = t;
+      if (t <= 0) {
+        clearInterval(timer);
+        const btn = document.getElementById('resend');
+        btn.innerHTML = 'Resend code';
+        btn.onclick = () => location.reload();
+      }
+    }, 1000);
+
+    document.getElementById('otpForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const code = digits.map(d => d.value).join('');
+      if (code !== '123456') return alert('Invalid OTP. Demo code is 123456');
+      localStorage.setItem('cng_auth_token', 'demo_' + Date.now());
+      localStorage.setItem('cng_user_email', sessionStorage.getItem('pending_email') || 'demo@cng.network');
+      localStorage.setItem('cng_user_name', sessionStorage.getItem('pending_name') || 'Demo User');
+      sessionStorage.clear();
+      location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>

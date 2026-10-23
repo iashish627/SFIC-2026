@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create account · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;justify-content:center">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:0 6px 16px rgba(16,185,129,.35)">CN</div>
+      <div>
+        <div style="font-weight:700;font-size:1.1rem">CNG Network Intelligence</div>
+        <div style="font-size:.75rem;color:#64748b">Demand forecasting & network expansion</div>
+      </div>
+    </div>
+
+    <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">Create your account</h1>
+    <p style="color:#64748b;font-size:.875rem;margin-bottom:1.5rem">Start planning station-level CNG demand and expansion</p>
+
+    <form id="signupForm" style="display:flex;flex-direction:column;gap:.9rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div>
+          <label style="display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:.3rem">First name</label>
+          <input type="text" id="first" required placeholder="Rahul" />
+        </div>
+        <div>
+          <label style="display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:.3rem">Last name</label>
+          <input type="text" id="last" required placeholder="Patel" />
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:.3rem">Work email</label>
+        <input type="email" id="email" required placeholder="you@company.com" />
+      </div>
+      <div>
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:.3rem">Organization</label>
+        <input type="text" id="org" placeholder="Gujarat Gas / Consultant / University" />
+      </div>
+      <div>
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:.3rem">Password</label>
+        <input type="password" id="pass" required minlength="6" placeholder="Min. 6 characters" />
+      </div>
+      <div>
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:.3rem">Confirm password</label>
+        <input type="password" id="confirm" required placeholder="••••••••" />
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:.5rem;font-size:.8rem;color:#64748b;cursor:pointer">
+        <input type="checkbox" required style="width:auto;margin-top:3px" />
+        I agree this is a planning / educational demo and not an official Gujarat Gas product.
+      </label>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:.8rem">Create account →</button>
+    </form>
+
+    <p style="text-align:center;margin-top:1.25rem;font-size:.85rem;color:#64748b">
+      Already have an account? <a href="login.html" style="color:#059669;font-weight:600">Sign in</a>
+    </p>
+  </div>
+
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const pass = document.getElementById('pass').value;
+      const conf = document.getElementById('confirm').value;
+      if (pass !== conf) return alert('Passwords do not match');
+      if (pass.length < 6) return alert('Password too short');
+      sessionStorage.setItem('pending_email', document.getElementById('email').value.trim());
+      sessionStorage.setItem('pending_name', document.getElementById('first').value + ' ' + document.getElementById('last').value);
+      sessionStorage.setItem('auth_flow', 'signup');
+      location.href = 'otp.html';
+    });
+  </script>
+</body>
+</html>

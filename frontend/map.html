@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Network Map · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>#map{height:calc(100vh - 140px);min-height:500px;border-radius:14px}</style>
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item">Station Explorer</a>
+      <a href="map.html" class="nav-item active">Network Map</a>
+      <a href="forecast.html" class="nav-item">Demand Forecast</a>
+      <a href="sites.html" class="nav-item">Site Selection</a>
+      <a href="simulator.html" class="nav-item">What-if Simulator</a>
+      <a href="data.html" class="nav-item">Data Center</a>
+      <a href="reports.html" class="nav-item">Reports</a>
+    </nav>
+    <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Network Map</h1>
+          <p style="font-size:.75rem;color:#64748b">District clusters · capacity risk overlay</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <span class="badge">DEMO COORDINATES</span>
+        <label style="font-size:.8rem;display:flex;align-items:center;gap:.35rem;cursor:pointer">
+          <input type="checkbox" id="riskOnly" /> Risk stations only
+        </label>
+      </div>
+    </header>
+
+    <div style="padding:1rem 1.5rem">
+      <div class="card" style="padding:.5rem">
+        <div id="map"></div>
+      </div>
+      <p style="font-size:.75rem;color:#94a3b8;margin-top:.6rem">
+        Source directory has 0 verified lat/long (all flagged). Map uses illustrative district centroids sized by station count. Green = healthy, amber/red = elevated utilization.
+      </p>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    const points = [
+      { name:'Ahmedabad', lat:23.0225, lng:72.5714, count:42, util:1.08 },
+      { name:'Surat', lat:21.1702, lng:72.8311, count:78, util:1.05 },
+      { name:'Vadodara', lat:22.3072, lng:73.1812, count:18, util:1.02 },
+      { name:'Bharuch / Ankleshwar', lat:21.7051, lng:72.9959, count:41, util:0.98 },
+      { name:'Gandhinagar', lat:23.2156, lng:72.6369, count:12, util:0.95 },
+      { name:'Anand / Nadiad', lat:22.5645, lng:72.9289, count:27, util:0.91 },
+      { name:'Valsad / Vapi', lat:20.5992, lng:72.9342, count:21, util:0.93 },
+      { name:'Godhra / Halol', lat:22.777, lng:73.62, count:28, util:0.88 },
+      { name:'Dahod', lat:22.835, lng:74.255, count:22, util:0.94 },
+      { name:'Navsari', lat:20.9467, lng:72.952, count:19, util:0.87 }
+    ];
+    const map = L.map('map').setView([22.5, 72.9], 7.2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OSM · CARTO', maxZoom: 18
+    }).addTo(map);
+
+    let markers = [];
+    function draw(riskOnly) {
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+      points.filter(p => !riskOnly || p.util >= 1).forEach(p => {
+        const color = p.util > 1.05 ? '#ef4444' : p.util > 0.95 ? '#f59e0b' : '#059669';
+        const r = Math.max(10, Math.min(32, p.count / 2.5));
+        const m = L.circleMarker([p.lat, p.lng], {
+          radius: r, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
+        }).bindPopup(`<strong>${p.name}</strong><br>${p.count} stations<br>Avg util: ${(p.util*100).toFixed(0)}%`).addTo(map);
+        markers.push(m);
+      });
+    }
+    draw(false);
+    document.getElementById('riskOnly').addEventListener('change', e => draw(e.target.checked));
+  </script>
+</body>
+</html>

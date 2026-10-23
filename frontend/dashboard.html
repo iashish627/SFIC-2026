@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">CN</div>
+      <div>
+        <div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div>
+        <div style="font-size:.65rem;color:#64748b;margin-top:2px">SFIC 2026 · PS000002</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Overview
+      </a>
+      <a href="stations.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        Station Explorer
+      </a>
+      <a href="map.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        Network Map
+      </a>
+      <a href="forecast.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        Demand Forecast
+      </a>
+      <a href="sites.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Site Selection
+      </a>
+      <a href="simulator.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        What-if Simulator
+      </a>
+      <a href="data.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+        Data Center
+      </a>
+      <a href="reports.html" class="nav-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Reports
+      </a>
+    </nav>
+    <div class="user-block">
+      <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.6rem">
+        <div class="avatar" data-user-avatar>U</div>
+        <div style="min-width:0">
+          <div style="font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-user-name>User</div>
+          <div style="font-size:.65rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-user-email>demo@cng.network</div>
+        </div>
+      </div>
+      <button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer;padding:0">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem;display:none" id="menuBtn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Network overview</h1>
+          <p style="font-size:.75rem;color:#64748b">CNG network digital twin for planning what-if comparisons</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <span class="badge">SYNTHETIC DEMO · stations</span>
+        <span class="badge">SYNTHETIC DEMO · sales</span>
+        <span class="badge">SYNTHETIC DEMO · capacity</span>
+      </div>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem 2rem;max-width:1400px">
+      <div class="banner" style="margin-bottom:1.25rem">
+        <strong>SYNTHETIC DEMO data is loaded.</strong>
+        Figures are illustrative only and do not describe real Gujarat Gas operations.
+        <a href="data.html">Import real CSVs in Data Center</a>
+      </div>
+
+      <!-- KPI row – matches reference layout -->
+      <div class="kpi-grid" style="margin-bottom:1.25rem">
+        <div class="kpi">
+          <div class="label">Existing stations</div>
+          <div class="value" id="kpiStations">0</div>
+          <div class="sub">Gujarat directory</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Candidate sites</div>
+          <div class="value" id="kpiCandidates">0</div>
+          <div class="sub">Ranked by demand gap</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Districts</div>
+          <div class="value" id="kpiDistricts">0</div>
+          <div class="sub">Covered</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Sales records</div>
+          <div class="value" id="kpiSales">0</div>
+          <div class="sub">through 2026-09-30</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Capacity coverage</div>
+          <div class="value">312/344</div>
+          <div class="sub">stations with capacity</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Located stations</div>
+          <div class="value">0/344</div>
+          <div class="sub" style="color:#d97706">coords need verification</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid-2" style="margin-bottom:1.25rem">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
+            <div>
+              <h3>Network demand: last 28 days + 14-day baseline</h3>
+              <p class="desc" style="margin:0">Solid = observed sales, dashed = seasonal-naive baseline. Synthetic values — illustrative only.</p>
+            </div>
+            <span class="badge">SYNTHETIC DEMO</span>
+          </div>
+          <div class="chart-box"><canvas id="demandChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
+            <h3>Stations by district</h3>
+            <span class="badge">SYNTHETIC DEMO</span>
+          </div>
+          <div class="chart-box"><canvas id="districtChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Risk + Quick links -->
+      <div class="grid-2">
+        <div class="card">
+          <h3>Top risk signals</h3>
+          <p class="desc">Rule-based flags from baseline vs capacity and data quality. Not operational alerts.</p>
+          <div style="display:flex;flex-direction:column;gap:.65rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
+              <span style="font-family:ui-monospace;color:#475569">GGL-AHM-008</span>
+              <span class="risk-high">Forecast peak 3,072 kg/day = 118% of capacity</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
+              <span style="font-family:ui-monospace;color:#475569">GGL-SUR-004</span>
+              <span class="risk-high">Forecast peak 2,397 kg/day = 121% of capacity</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
+              <span style="font-family:ui-monospace;color:#475569">GGL-VAD-002</span>
+              <span class="risk-high">Forecast peak 2,742 kg/day = 115% of capacity</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
+              <span style="font-family:ui-monospace;color:#475569">GGL-0148</span>
+              <span class="risk-med">Forecast peak 6,200 kg/day = 113% of capacity</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;font-size:.85rem">
+              <span style="font-family:ui-monospace;color:#475569">GGL-NEW-031</span>
+              <span class="risk-med">Forecast peak 3,600 kg/day = 106% of capacity</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Quick links</h3>
+          <p class="desc">Jump to advanced planning modules</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+            <a href="simulator.html" class="quick-link">Compare A / B / C scenarios <span>→</span></a>
+            <a href="sites.html" class="quick-link">Rank candidate sites <span>→</span></a>
+            <a href="map.html" class="quick-link">Open network map <span>→</span></a>
+            <a href="forecast.html" class="quick-link">Station-level forecast <span>→</span></a>
+            <a href="data.html" class="quick-link">Import real CSV data <span>→</span></a>
+            <a href="reports.html" class="quick-link">Download report <span>→</span></a>
+          </div>
+        </div>
+      </div>
+
+      <p style="text-align:center;margin-top:2rem;font-size:.7rem;color:#94a3b8">
+        Student / hackathon decision-support prototype. Not an official Gujarat Gas product. All forecasts are synthetic.
+      </p>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    // Show mobile menu button
+    if (window.innerWidth < 1024) document.getElementById('menuBtn').style.display = 'inline-flex';
+    window.addEventListener('resize', () => {
+      document.getElementById('menuBtn').style.display = window.innerWidth < 1024 ? 'inline-flex' : 'none';
+    });
+
+    // Animated KPIs
+    animateValue(document.getElementById('kpiStations'), 344);
+    animateValue(document.getElementById('kpiCandidates'), 28);
+    animateValue(document.getElementById('kpiDistricts'), 18);
+    animateValue(document.getElementById('kpiSales'), 28560);
+
+    // Demand chart – matches reference style
+    new Chart(document.getElementById('demandChart'), {
+      type: 'line',
+      data: {
+        labels: ['09-03','09-06','09-09','09-12','09-15','09-18','09-21','09-24','09-27','09-30','10-03','10-06','10-09','10-12'],
+        datasets: [
+          {
+            label: 'Observed sales (kg)',
+            data: [82000,74000,88000,76000,91000,79000,94000,82000,89000,85000,null,null,null,null],
+            borderColor: '#059669',
+            backgroundColor: 'rgba(5,150,105,.08)',
+            tension: 0.35,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: '#059669'
+          },
+          {
+            label: 'Seasonal-naive baseline',
+            data: [null,null,null,null,null,null,null,null,null,85000,82000,91000,78000,88000],
+            borderColor: '#94a3b8',
+            borderDash: [6,4],
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#94a3b8'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 11 } } },
+          tooltip: { backgroundColor: '#0f172a', titleFont: { size: 12 }, bodyFont: { size: 12 } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+          y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8' }, beginAtZero: true }
+        }
+      }
+    });
+
+    // District chart
+    const distLabels = Object.keys(window.DISTRICT_COUNTS);
+    const distValues = Object.values(window.DISTRICT_COUNTS);
+    new Chart(document.getElementById('districtChart'), {
+      type: 'bar',
+      data: {
+        labels: distLabels,
+        datasets: [{
+          data: distValues,
+          backgroundColor: '#059669',
+          borderRadius: 4,
+          barThickness: 14
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+          y: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#475569' } }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

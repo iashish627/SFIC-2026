@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Site Selection · CNG Network Intelligence</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">Overview</a>
+      <a href="stations.html" class="nav-item">Station Explorer</a>
+      <a href="map.html" class="nav-item">Network Map</a>
+      <a href="forecast.html" class="nav-item">Demand Forecast</a>
+      <a href="sites.html" class="nav-item active">Site Selection</a>
+      <a href="simulator.html" class="nav-item">What-if Simulator</a>
+      <a href="data.html" class="nav-item">Data Center</a>
+      <a href="reports.html" class="nav-item">Reports</a>
+    </nav>
+    <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
+        <div>
+          <h1 style="font-size:1.15rem;font-weight:700">Candidate Site Ranking</h1>
+          <p style="font-size:.75rem;color:#64748b">Demand gap · RTO growth · coverage deficit · distance to mother</p>
+        </div>
+      </div>
+      <span class="badge">28 CANDIDATES</span>
+    </header>
+
+    <div style="padding:1.25rem 1.5rem">
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
+        <div style="overflow-x:auto">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Candidate site</th>
+                <th>District</th>
+                <th>Demand gap</th>
+                <th>RTO growth</th>
+                <th>Nearest mother</th>
+                <th>Score</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>1</strong></td><td>Sanand GIDC Extension</td><td>Ahmedabad</td><td class="risk-high">1,840 kg/d</td><td>+14%</td><td>8.2 km</td><td><strong style="color:#059669">92</strong></td><td><span class="tag tag-green">High priority</span></td></tr>
+              <tr><td><strong>2</strong></td><td>Kamrej / Kadodara Node</td><td>Surat</td><td class="risk-high">1,620 kg/d</td><td>+11%</td><td>6.5 km</td><td><strong style="color:#059669">89</strong></td><td><span class="tag tag-green">High priority</span></td></tr>
+              <tr><td><strong>3</strong></td><td>Halol Industrial Corridor</td><td>Panchmahal</td><td class="risk-med">1,150 kg/d</td><td>+9%</td><td>4.1 km</td><td><strong style="color:#059669">84</strong></td><td><span class="tag tag-amber">Medium</span></td></tr>
+              <tr><td><strong>4</strong></td><td>Vapi GIDC Phase-2</td><td>Valsad</td><td class="risk-med">980 kg/d</td><td>+12%</td><td>3.8 km</td><td><strong style="color:#059669">81</strong></td><td><span class="tag tag-amber">Medium</span></td></tr>
+              <tr><td>5</td><td>Dahod Bypass NH-47</td><td>Dahod</td><td class="risk-med">870 kg/d</td><td>+7%</td><td>5.2 km</td><td><strong>76</strong></td><td><span class="tag">Watch</span></td></tr>
+              <tr><td>6</td><td>Nadiad Ring Road</td><td>Kheda</td><td>720 kg/d</td><td>+8%</td><td>7.0 km</td><td><strong>73</strong></td><td><span class="tag">Watch</span></td></tr>
+              <tr><td>7</td><td>Ankleshwar Valia Road</td><td>Bharuch</td><td>690 kg/d</td><td>+6%</td><td>4.9 km</td><td><strong>71</strong></td><td><span class="tag">Watch</span></td></tr>
+              <tr><td>8</td><td>Gift City Edge</td><td>Gandhinagar</td><td>640 kg/d</td><td>+15%</td><td>9.1 km</td><td><strong>70</strong></td><td><span class="tag">Watch</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Scoring model</h3>
+        <p class="desc">Transparent multi-criteria ranking used for expansion prioritization</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;font-size:.85rem">
+          <div><div style="font-weight:600;color:#059669">40%</div> Demand gap percentile</div>
+          <div><div style="font-weight:600;color:#059669">25%</div> RTO vehicle growth</div>
+          <div><div style="font-weight:600;color:#059669">20%</div> Coverage deficit</div>
+          <div><div style="font-weight:600;color:#059669">15%</div> Inverse distance to mother</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>
