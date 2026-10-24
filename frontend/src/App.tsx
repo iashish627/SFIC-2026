@@ -1,0 +1,34 @@
+import { useEffect, useState } from "react";
+import { Activity, Fuel, MapPin, RefreshCw, Zap, AlertTriangle, ArrowUpRight, Play, Server } from "lucide-react";
+import { apiGet, apiPost } from "./api";
+type Health = { status?: string; [key: string]: unknown };
+type StationsResponse = { stations?: Array<Record<string, unknown>>; total?: number; count?: number; [key: string]: unknown };
+type ForecastResponse = Record<string, unknown>;
+export default function App() {
+ const [health,setHealth] = useState<"checking"|"online"|"offline">("checking");
+ const [stations,setStations] = useState<StationsResponse|null>(null);
+ const [stationError,setStationError] = useState("");
+ const [baseDemand,setBaseDemand] = useState("1200");
+ const [uplift,setUplift] = useState("20");
+ const [forecast,setForecast] = useState<ForecastResponse|null>(null);
+ const [busy,setBusy] = useState(false);
+ const [error,setError] = useState("");
+ const [shock,setShock] = useState<ForecastResponse|null>(null);
+ useEffect(()=>{ apiGet<Health>("/health").then(()=>setHealth("online")).catch(()=>setHealth("offline")); apiGet<StationsResponse>("/api/v1/forecast/stations").then(setStations).catch(e=>setStationError(e.message)); },[]);
+ async function generate(){setBusy(true);setError("");setForecast(null);try{setForecast(await apiPost<ForecastResponse>("/api/v1/forecast/generate",{mode:"estimated",base_demand_kg:Number(baseDemand),horizon_days:30}));}catch(e){setError(e instanceof Error?e.message:"Forecast request failed");}finally{setBusy(false);}}
+ async function runShock(){setBusy(true);setError("");setShock(null);try{setShock(await apiPost<ForecastResponse>("/api/v1/forecast/scenario/demand-shock",{base_demand_kg:Number(baseDemand),uplift_pct:Number(uplift),horizon_days:30}));}catch(e){setError(e instanceof Error?e.message:"Scenario request failed");}finally{setBusy(false);}}
+ const count = stations?.total ?? stations?.count ?? stations?.stations?.length;
+ return <main className="shell">
+  <aside className="sidebar"><div className="brand"><div className="brand-icon"><Fuel size={22}/></div><div><b>CNG INTELLIGENCE</b><small>NETWORK CONTROL</small></div></div><div className="nav-label">WORKSPACE</div><div className="nav-item active"><Activity size={17}/> Overview</div><div className="nav-item"><MapPin size={17}/> Station network</div><div className="nav-item"><Zap size={17}/> Demand forecast</div><div className="sidebar-bottom"><span className={health==="online"?"dot":"dot dim"}/><span>Forecast API</span><b className="api-state">{health}</b></div></aside>
+  <section className="content"><header><div><div className="eyebrow">GUJARAT GAS · SFIC 2026</div><h1>Network intelligence</h1><p className="sub">Station-level demand signals and decision support.</p></div><div className="status-pill"><span className={health==="online"?"dot":"dot dim"}/>{health==="online"?"API connected":health==="checking"?"Connecting…":"API offline"}</div></header>
+  {health==="offline"&&<div className="notice"><AlertTriangle size={18}/><div><b>Backend not reachable</b><p>Start the FastAPI service on port 8000. Set VITE_API_BASE_URL in frontend/.env if needed.</p></div></div>}
+  <div className="metrics"><article className="metric"><div className="metric-top"><span>Station records</span><MapPin size={17}/></div><strong>{count ?? "—"}</strong><small>{stationError?"Station endpoint unavailable":"Loaded from configured station dataset"}</small></article><article className="metric"><div className="metric-top"><span>Forecast horizon</span><Activity size={17}/></div><strong>30 <em>days</em></strong><small>Daily demand planning window</small></article><article className="metric"><div className="metric-top"><span>Data mode</span><Fuel size={17}/></div><strong className="mode">Estimated</strong><small>Clearly separated from actual sales</small></article><article className="metric"><div className="metric-top"><span>API status</span><Server size={17}/></div><strong className="mode">{health==="online"?"Online":health==="checking"?"Checking":"Offline"}</strong><small>FastAPI health check</small></article></div>
+  <div className="section-heading"><div><div className="eyebrow">FORECAST WORKBENCH</div><h2>Demand forecast</h2></div><button className="secondary" onClick={()=>location.reload()}><RefreshCw size={15}/> Refresh</button></div>
+  <div className="work-grid"><article className="panel"><div className="panel-heading"><div><h3>Generate baseline</h3><p>Run an estimated forecast with an explicit demand assumption.</p></div><span className="tag">30 DAY</span></div><label>Baseline daily demand (kg)<input type="number" min="1" value={baseDemand} onChange={e=>setBaseDemand(e.target.value)}/></label><div className="assumption">This is a user-supplied demo assumption, not Gujarat Gas actual sales data.</div><button className="primary" disabled={busy||health!=="online"||Number(baseDemand)<=0} onClick={generate}><Play size={16} fill="currentColor"/>{busy?"Working…":"Generate forecast"}<ArrowUpRight size={16}/></button>{forecast&&<Result title="Forecast response" data={forecast}/>}</article>
+  <article className="panel"><div className="panel-heading"><div><h3>Demand shock simulator</h3><p>Test a hypothetical festival or holiday uplift.</p></div><span className="tag purple">WHAT-IF</span></div><label>Demand uplift (%)<input type="number" min="0" max="300" value={uplift} onChange={e=>setUplift(e.target.value)}/></label><div className="assumption">Scenario outputs are hypothetical and depend on the entered baseline.</div><button className="primary purple-btn" disabled={busy||health!=="online"||Number(baseDemand)<=0||Number(uplift)<0} onClick={runShock}><Zap size={16}/>{busy?"Working…":"Run demand shock"}<ArrowUpRight size={16}/></button>{shock&&<Result title="Scenario response" data={shock}/>}</article></div>
+  {error&&<div className="error"><AlertTriangle size={17}/><span>{error}</span></div>}
+  <div className="section-heading"><div><div className="eyebrow">DATA TRANSPARENCY</div><h2>Station data status</h2></div></div><article className="panel data-panel"><div className="data-icon"><MapPin size={19}/></div><div><h3>Station master</h3><p>{stationError?stationError:count!==undefined?`${count} station record(s) reported by the API.`:"Waiting for station endpoint."} Historical sales data is not assumed to exist. Actual-data forecasting requires a validated sales CSV.</p></div><span className={stationError?"tag warn":"tag"}>{stationError?"NOT LOADED":"SOURCE CHECK"}</span></article>
+  <footer>Prototype for SFIC 2026 · Forecasts are estimates, not official operational guidance.</footer>
+ </section></main>;
+}
+function Result({title,data}:{title:string;data:Record<string,unknown>}){return <div className="result"><b>{title}</b><pre>{JSON.stringify(data,null,2)}</pre></div>}
