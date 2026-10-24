@@ -53,17 +53,18 @@ def run_simulation(stations: Iterable[Station], horizon_days=30, demand_uplift_p
     expanded=[{**x,"capacity":x["capacity"]+(added if x["station_id"]==expand_station_id else 0)} for x in daily]
     expanded_served=sum(min(x["demand"],x["capacity"]) for x in expanded)
     expanded_capacity=sum(x["capacity"] for x in expanded)
-    # Estimate diversion as a share of new-site potential; allocate it proportionally across existing demand.
-    diversion_total=min(potential*diversion/100, sum(s.baseline_kg_day for s in rows))*horizon_days
-    baseline_per_day=sum(s.baseline_kg_day for s in rows)
-    share=min(1,(diversion_total/horizon_days)/baseline_per_day) if baseline_per_day else 0
+    # Diversion is a share of achievable new-site sales, capped by both new-site sales
+    # and forecast existing-network demand. Allocate the exact diverted total proportionally
+    # across station-days so temporary shocks do not silently inflate cannibalization.
+    new_sales=min(potential,new_cap)*horizon_days
+    diversion_total=min(new_sales*diversion/100, demand)
     existing_served=0
     existing_unmet=0
     for x in daily:
-        remaining=max(0,x["demand"]*(1-share))
+        diverted_from_row=(diversion_total*x["demand"]/demand) if demand else 0
+        remaining=max(0,x["demand"]-diverted_from_row)
         existing_served += min(remaining,x["capacity"])
         existing_unmet += max(0,remaining-x["capacity"])
-    new_sales=min(potential,new_cap)*horizon_days
     net_incremental=new_sales-diversion_total
     def item(name,d,sv,cap,um,cost,note):
         return {"scenario":name,"horizon_days":horizon_days,"forecast_demand_kg":round(d,2),
