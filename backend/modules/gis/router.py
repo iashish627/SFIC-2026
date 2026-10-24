@@ -11,9 +11,14 @@ router = APIRouter(prefix="/api/gis", tags=["GIS"])
 REPO_ROOT = Path(__file__).resolve().parents[3]
 # Prefer the 344-record Gujarat Gas directory extract when available locally.
 # Otherwise fall back to the explicitly provisional public-outlet snapshot.
+GUJARAT_GAS_GEOCODED_CSV = REPO_ROOT / "member-3-forecasting" / "data" / "gujarat_gas_directory_344_geocoded.csv"
 GUJARAT_GAS_344_CSV = REPO_ROOT / "member-3-forecasting" / "data" / "gujarat_gas_directory_344_records.csv"
 PUBLIC_CSV = REPO_ROOT / "data" / "processed" / "stations.csv"
-DEFAULT_CSV = GUJARAT_GAS_344_CSV if GUJARAT_GAS_344_CSV.exists() else PUBLIC_CSV
+DEFAULT_CSV = (
+    GUJARAT_GAS_GEOCODED_CSV if GUJARAT_GAS_GEOCODED_CSV.exists()
+    else GUJARAT_GAS_344_CSV if GUJARAT_GAS_344_CSV.exists()
+    else PUBLIC_CSV
+)
 
 
 def load_stations():
