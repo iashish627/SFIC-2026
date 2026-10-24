@@ -1,0 +1,15 @@
+field,file,definition,unit_or_format
+station_id,All files,Stable synthetic join key,text
+station_name,stations.csv,Illustrative demo name; not verified operating station,text
+latitude,stations.csv,Illustrative coordinates for map prototyping,decimal degrees
+longitude,stations.csv,Illustrative coordinates for map prototyping,decimal degrees
+status,stations.csv,Synthetic demo status,category
+date,daily_sales.csv,Date of synthetic daily sales record,YYYY-MM-DD
+sales_kg,daily_sales.csv,"Synthetic daily sales; blank means missing, not zero",kg/day
+quality_flag,daily_sales.csv,Basic synthetic data-quality indicator,category
+effective_capacity_kg_day,station_capacity.csv,Synthetic effective daily throughput capacity,kg/day
+dispenser_count,station_capacity.csv,Synthetic dispenser count,count
+valid_from,station_capacity.csv,Start date for capacity record,YYYY-MM-DD
+valid_to,station_capacity.csv,End date; blank means open-ended in this demo,YYYY-MM-DD or blank
+provenance_type,All files,All records in this package are synthetic,category
+source,All files,Dataset creation marker,text
