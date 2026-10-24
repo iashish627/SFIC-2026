@@ -42,7 +42,7 @@
         <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
         <div>
           <h1 style="font-size:1.15rem;font-weight:700">Network Map</h1>
-          <p style="font-size:.75rem;color:#64748b">CNG-flagged outlets only · clustered station pins</p>
+          <p style="font-size:.75rem;color:#64748b">Mapped Gujarat outlets only · stations without coordinates are omitted</p>
         </div>
       </div>
       <div class="map-filters">
@@ -57,7 +57,7 @@
         <div id="map"></div>
         <p id="mapFoot" style="font-size:.75rem;color:#94a3b8;margin:.6rem .25rem .1rem">Loading data…</p>
       </div>
-      <div id="mapNote" class="map-note">Loading source-backed outlet coordinates. Public outlet records will be labelled provisional unless verified against Gujarat Gas records.</div>
+      <div id="mapNote" class="map-note">Showing only records with usable coordinates inside the Gujarat map area. Records without coordinates are omitted; provisional records remain labelled.</div>
     </div>
   </div>
 
@@ -169,7 +169,7 @@
         );
         markerClusters.addLayer(marker);
       });
-      document.getElementById('mapFoot').textContent = filtered.length + ' Gujarat record(s) shown from ' + records.length + ' coordinate-backed API records. Pins outside the approximate Gujarat outline are hidden.';
+      document.getElementById('mapFoot').textContent = filtered.length + ' mapped station(s) shown. Only records with valid coordinates inside the Gujarat map area are displayed; records without coordinates are omitted.';
       map.setMaxBounds(GUJARAT_BOUNDS);
       if (filtered.length) {
         const bounds = L.latLngBounds(filtered.map(row => [Number(row.latitude), Number(row.longitude)]));
@@ -194,8 +194,8 @@
         const provisional=records.filter(row=>!isVerified(row)).length;
         badge.textContent = records.length ? (provisional ? 'PROVISIONAL DATA' : 'SOURCE DATA') : 'NO STATION DATA';
         note.textContent = records.length
-          ? (records.length + ' coordinate-backed outlets have a positive CNG flag in the public source. ' + provisional + ' remain provisional and are not verified as operating Gujarat Gas stations.')
-          : 'No coordinate-backed outlets with a positive CNG flag were returned. Demo markers are disabled.';
+          ? (records.length + ' records have valid coordinates in the loaded dataset. The map displays only those falling inside the Gujarat map area. ' + provisional + ' remain provisional and are not verified as operating Gujarat Gas stations; records without coordinates are not plotted.')
+          : 'No records with valid coordinates were returned by the GIS API. No placeholder markers are shown.';
         if (provisional) note.textContent += ' A source CNG flag does not prove current operation, supplier, sales, or capacity.';
         draw();
       } catch (error) {
