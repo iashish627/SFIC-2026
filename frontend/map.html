@@ -6,6 +6,11 @@
   <title>Network Map · CNG Network Intelligence</title>
   <link rel="stylesheet" href="css/app.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .map-note{padding:.8rem 1rem;margin:.75rem 0;border:1px solid #d6a34d;background:#fff7e6;color:#8a5310;border-radius:10px;font-size:.78rem;line-height:1.5}
+    .map-filters{display:flex;gap:.85rem;align-items:center;flex-wrap:wrap}
+    .map-filters label{display:flex;gap:.35rem;align-items:center;font-size:.78rem;cursor:pointer}
+  </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>#map{height:calc(100vh - 140px);min-height:500px;border-radius:14px}</style>
 </head>
@@ -35,58 +40,97 @@
           <p style="font-size:.75rem;color:#64748b">District clusters · capacity risk overlay</p>
         </div>
       </div>
-      <div style="display:flex;gap:.5rem;align-items:center">
-        <span class="badge">DEMO COORDINATES</span>
-        <label style="font-size:.8rem;display:flex;align-items:center;gap:.35rem;cursor:pointer">
-          <input type="checkbox" id="riskOnly" /> Risk stations only
-        </label>
+      <div class="map-filters">
+        <span class="badge" id="dataBadge">LOADING DATA</span>
+        <label><input type="checkbox" id="riskOnly" /> Risk stations only</label>
+        <label><input type="checkbox" id="verifiedOnly" /> Verified operator stations</label>
       </div>
     </header>
 
     <div style="padding:1rem 1.5rem">
       <div class="card" style="padding:.5rem">
         <div id="map"></div>
+        <p id="mapFoot" style="font-size:.75rem;color:#94a3b8;margin:.6rem .25rem .1rem">Loading data…</p>
       </div>
-      <p style="font-size:.75rem;color:#94a3b8;margin-top:.6rem">
-        Source directory has 0 verified lat/long (all flagged). Map uses illustrative district centroids sized by station count. Green = healthy, amber/red = elevated utilization.
-      </p>
+      <div id="mapNote" class="map-note">Loading source-backed outlet coordinates. Public outlet records will be labelled provisional unless verified against Gujarat Gas records.</div>
     </div>
   </div>
 
   <script src="js/app.js"></script>
   <script>
-    const points = [
-      { name:'Ahmedabad', lat:23.0225, lng:72.5714, count:42, util:1.08 },
-      { name:'Surat', lat:21.1702, lng:72.8311, count:78, util:1.05 },
-      { name:'Vadodara', lat:22.3072, lng:73.1812, count:18, util:1.02 },
-      { name:'Bharuch / Ankleshwar', lat:21.7051, lng:72.9959, count:41, util:0.98 },
-      { name:'Gandhinagar', lat:23.2156, lng:72.6369, count:12, util:0.95 },
-      { name:'Anand / Nadiad', lat:22.5645, lng:72.9289, count:27, util:0.91 },
-      { name:'Valsad / Vapi', lat:20.5992, lng:72.9342, count:21, util:0.93 },
-      { name:'Godhra / Halol', lat:22.777, lng:73.62, count:28, util:0.88 },
-      { name:'Dahod', lat:22.835, lng:74.255, count:22, util:0.94 },
-      { name:'Navsari', lat:20.9467, lng:72.952, count:19, util:0.87 }
-    ];
-    const map = L.map('map').setView([22.5, 72.9], 7.2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OSM · CARTO', maxZoom: 18
+    const map = L.map('map').setView([22.5, 72.9], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
-    let markers = [];
-    function draw(riskOnly) {
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
-      points.filter(p => !riskOnly || p.util >= 1).forEach(p => {
-        const color = p.util > 1.05 ? '#ef4444' : p.util > 0.95 ? '#f59e0b' : '#059669';
-        const r = Math.max(10, Math.min(32, p.count / 2.5));
-        const m = L.circleMarker([p.lat, p.lng], {
-          radius: r, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
-        }).bindPopup(`<strong>${p.name}</strong><br>${p.count} stations<br>Avg util: ${(p.util*100).toFixed(0)}%`).addTo(map);
-        markers.push(m);
+    let records = [], layers = [];
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[ch]));
+    const isVerified = row => String(row.verified_gujarat_gas_station ?? '').toLowerCase() === 'true';
+    const isRisk = row => Number(row.utilization ?? row.util ?? 0) >= 1;
+
+    function draw() {
+      layers.forEach(layer => map.removeLayer(layer));
+      layers = [];
+      const filtered = records.filter(row =>
+        (!document.getElementById('riskOnly').checked || isRisk(row)) &&
+        (!document.getElementById('verifiedOnly').checked || isVerified(row))
+      );
+      filtered.forEach(row => {
+        const verified = isVerified(row);
+        const cngFlag = String(row.has_cng ?? '').toLowerCase() === 'true';
+        const marker = L.circleMarker([Number(row.latitude), Number(row.longitude)], {
+          radius: verified ? 7 : 5,
+          color: verified ? '#047857' : '#b7791f',
+          fillColor: verified ? '#10b981' : '#f6ad55',
+          weight: 2, dashArray: verified ? null : '3 3', fillOpacity: .85
+        }).bindPopup(
+          '<strong>' + esc(row.station_name || row.name || row.station_id) + '</strong>' +
+          '<br>ID: ' + esc(row.station_id || 'not supplied') +
+          '<br>District: ' + esc(row.district || 'not supplied') +
+          '<br>Coordinates: ' + esc(row.latitude) + ', ' + esc(row.longitude) +
+          '<br>CNG flag in source: ' + (cngFlag ? 'yes; not proof of current operation' : 'not confirmed') +
+          '<br>Verification: ' + (verified ? 'verified operator station' : 'provisional public outlet candidate') +
+          '<br>Source: ' + esc(row.source || 'not supplied') +
+          (row.source_url ? '<br><a href="' + esc(row.source_url) + '" target="_blank" rel="noreferrer">Open source</a>' : '')
+        );
+        marker.addTo(map); layers.push(marker);
       });
+      document.getElementById('mapFoot').textContent = filtered.length + ' record(s) shown from ' + records.length + ' coordinate-backed records.';
+      if (filtered.length) {
+        const bounds = L.latLngBounds(filtered.map(row => [Number(row.latitude), Number(row.longitude)]));
+        if (bounds.isValid()) map.fitBounds(bounds.pad(.12), {maxZoom: 11});
+      }
     }
-    draw(false);
-    document.getElementById('riskOnly').addEventListener('change', e => draw(e.target.checked));
+
+    async function loadMapData() {
+      const badge = document.getElementById('dataBadge'), note = document.getElementById('mapNote');
+      badge.textContent = 'LOADING DATA';
+      try {
+        const configured = window.CNG_GIS_API_BASE || 'http://localhost:8000';
+        const response = await fetch(configured + '/api/gis/stations');
+        if (!response.ok) throw new Error('GIS API returned HTTP ' + response.status);
+        const payload = await response.json();
+        records = (payload.items || payload.stations || payload.records || []).filter(row => {
+          const lat=Number(row.latitude ?? row.lat), lon=Number(row.longitude ?? row.lon ?? row.lng);
+          return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat)<=90 && Math.abs(lon)<=180;
+        }).map(row => ({...row, latitude:Number(row.latitude ?? row.lat), longitude:Number(row.longitude ?? row.lon ?? row.lng)}));
+        const provisional=records.filter(row=>!isVerified(row)).length;
+        badge.textContent = records.length ? (provisional ? 'PROVISIONAL DATA' : 'SOURCE DATA') : 'NO STATION DATA';
+        note.textContent = records.length
+          ? (payload.data_note || (provisional + ' record(s) are not verified as operating Gujarat Gas stations.'))
+          : 'No coordinate-backed records were returned. Import a source dataset or configure the API; demo markers are disabled.';
+        if (provisional) note.textContent += ' Public outlet/CNG flags do not prove current operation, supplier, sales, or capacity.';
+        draw();
+      } catch (error) {
+        records = []; draw(); badge.textContent = 'API UNAVAILABLE';
+        note.textContent = 'Could not load /api/gis/stations (' + (error instanceof Error ? error.message : 'network error') + '). Start the FastAPI backend on port 8000. Illustrative markers are disabled.';
+      }
+    }
+    document.getElementById('riskOnly').addEventListener('change', draw);
+    document.getElementById('verifiedOnly').addEventListener('change', draw);
+    loadMapData();
   </script>
 </body>
 </html>
