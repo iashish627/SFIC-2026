@@ -121,7 +121,7 @@
     function draw() {
       markerClusters.clearLayers();
       const filtered = records.filter(row =>
-        String(row.has_cng ?? '').toLowerCase() === 'true' &&
+        ['true', '1', 'yes', 'y'].includes(String(row.has_cng ?? '').trim().toLowerCase()) &&
         (!document.getElementById('riskOnly').checked || isRisk(row)) &&
         (!document.getElementById('verifiedOnly').checked || isVerified(row))
       );
@@ -129,9 +129,9 @@
         const verified = isVerified(row);
         const icon = L.divIcon({
           className: 'cng-station-pin',
-          html: '<div style="width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:' +
+          html: '<div title="CNG outlet candidate" style="width:34px;height:34px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:' +
             (verified ? '#059669' : '#d97706') +
-            ';border:2px solid #fff;box-shadow:0 2px 6px #0005;display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:16px;line-height:1">⛽</span></div>',
+            ';border:2px solid #fff;box-shadow:0 2px 6px #0005;display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:18px;line-height:1">⛽</span></div>',
           iconSize: [30, 30],
           iconAnchor: [15, 30],
           popupAnchor: [0, -28]
