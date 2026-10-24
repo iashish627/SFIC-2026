@@ -42,7 +42,7 @@
         <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
         <div>
           <h1 style="font-size:1.15rem;font-weight:700">Network Map</h1>
-          <p style="font-size:.75rem;color:#64748b">District clusters · capacity risk overlay</p>
+          <p style="font-size:.75rem;color:#64748b">CNG-flagged outlets only · clustered station pins</p>
         </div>
       </div>
       <div class="map-filters">
@@ -89,7 +89,7 @@
     legend.onAdd = function() {
       const div = L.DomUtil.create('div', 'map-legend');
       div.style.cssText = 'background:rgba(255,255,255,.96);padding:10px 12px;border:1px solid #dbe3ed;border-radius:9px;box-shadow:0 2px 8px #0002;font-size:11px;line-height:1.9;color:#334155';
-      div.innerHTML = '<strong>Map legend</strong><br><span style="color:#047857">●</span> Verified operator station<br><span style="color:#b7791f">◌</span> Provisional outlet candidate';
+      div.innerHTML = '<strong>CNG map legend</strong><br><span style="color:#047857">⛽</span> Verified operator station<br><span style="color:#b7791f">⛽</span> Provisional CNG-flagged outlet<br><span style="color:#64748b">Numbers</span> = clustered outlets';
       L.DomEvent.disableClickPropagation(div);
       return div;
     };
@@ -121,23 +121,27 @@
     function draw() {
       markerClusters.clearLayers();
       const filtered = records.filter(row =>
+        String(row.has_cng ?? '').toLowerCase() === 'true' &&
         (!document.getElementById('riskOnly').checked || isRisk(row)) &&
         (!document.getElementById('verifiedOnly').checked || isVerified(row))
       );
       filtered.forEach(row => {
         const verified = isVerified(row);
-        const cngFlag = String(row.has_cng ?? '').toLowerCase() === 'true';
-        const marker = L.circleMarker([Number(row.latitude), Number(row.longitude)], {
-          radius: verified ? 7 : 5,
-          color: verified ? '#047857' : '#b7791f',
-          fillColor: verified ? '#10b981' : '#f6ad55',
-          weight: 2, dashArray: verified ? null : '3 3', fillOpacity: .85
-        }).bindPopup(
+        const icon = L.divIcon({
+          className: 'cng-station-pin',
+          html: '<div style="width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:' +
+            (verified ? '#059669' : '#d97706') +
+            ';border:2px solid #fff;box-shadow:0 2px 6px #0005;display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:16px;line-height:1">⛽</span></div>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+          popupAnchor: [0, -28]
+        });
+        const marker = L.marker([Number(row.latitude), Number(row.longitude)], {icon}).bindPopup(
           '<strong>' + esc(row.station_name || row.name || row.station_id) + '</strong>' +
           '<br>ID: ' + esc(row.station_id || 'not supplied') +
           '<br>District: ' + esc(row.district || 'not supplied') +
           '<br>Coordinates: ' + esc(row.latitude) + ', ' + esc(row.longitude) +
-          '<br>CNG flag in source: ' + (cngFlag ? 'yes; not proof of current operation' : 'not confirmed') +
+          '<br>Source CNG flag: yes; current operation not independently verified' +
           '<br>Verification: ' + (verified ? 'verified operator station' : 'provisional public outlet candidate') +
           '<br>Source: ' + esc(row.source || 'not supplied') +
           (row.source_url ? '<br><a href="' + esc(row.source_url) + '" target="_blank" rel="noreferrer">Open source</a>' : '')
@@ -166,9 +170,9 @@
         const provisional=records.filter(row=>!isVerified(row)).length;
         badge.textContent = records.length ? (provisional ? 'PROVISIONAL DATA' : 'SOURCE DATA') : 'NO STATION DATA';
         note.textContent = records.length
-          ? (payload.data_note || (provisional + ' record(s) are not verified as operating Gujarat Gas stations.'))
-          : 'No coordinate-backed records were returned. Import a source dataset or configure the API; demo markers are disabled.';
-        if (provisional) note.textContent += ' Public outlet/CNG flags do not prove current operation, supplier, sales, or capacity.';
+          ? (records.length + ' coordinate-backed outlets have a positive CNG flag in the public source. ' + provisional + ' remain provisional and are not verified as operating Gujarat Gas stations.')
+          : 'No coordinate-backed outlets with a positive CNG flag were returned. Demo markers are disabled.';
+        if (provisional) note.textContent += ' A source CNG flag does not prove current operation, supplier, sales, or capacity.';
         draw();
       } catch (error) {
         records = []; draw(); badge.textContent = 'API UNAVAILABLE';
