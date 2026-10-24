@@ -1,15 +1,16 @@
-"""Geocode the local 344-record Gujarat Gas directory using OpenStreetMap Nominatim.
+"""Geocode the project's 344-record Gujarat Gas directory.
 
-This is an approximate matching helper, not an official Google Maps geocoder.
-It preserves the input rows, adds coordinates only when Nominatim returns a
-candidate, and labels each match with its confidence/precision. Review matches
-before using them for coverage or expansion decisions.
+Preferred provider: Google Maps Geocoding API through Google's official Python
+client library (googlemaps). If GOOGLE_MAPS_API_KEY is absent, explicitly fall
+back to OpenStreetMap Nominatim with its public-service rate limit.
+All geocoding results are candidates that require review before decisions.
 """
 from __future__ import annotations
 
 import argparse
 import csv
 import json
+import os
 import time
 import urllib.parse
 import urllib.request
@@ -45,6 +46,30 @@ def query_nominatim(query: str):
         "geocode_display_name": hit.get("display_name", ""),
         "geocode_type": hit.get("type", ""),
         "geocode_class": hit.get("class", ""),
+        "geocode_provider": "openstreetmap_nominatim",
+    }
+
+
+def query_google(query: str, api_key: str):
+    import googlemaps
+
+    client = googlemaps.Client(key=api_key, timeout=10, retry_timeout=15)
+    result = client.geocode(query, region="in")
+    if not result:
+        return None
+    # Geocoding may match an area/address instead of the station itself. Keep
+    # Google's result type and formatted address so an operator can review it.
+    hit = result[0]
+    location = hit.get("geometry", {}).get("location", {})
+    if "lat" not in location or "lng" not in location:
+        return None
+    return {
+        "latitude": location["lat"],
+        "longitude": location["lng"],
+        "geocode_display_name": hit.get("formatted_address", ""),
+        "geocode_type": "|".join(hit.get("types", [])),
+        "geocode_class": "",
+        "geocode_provider": "google_maps_geocoding",
     }
 
 
@@ -53,6 +78,8 @@ def main():
     parser.add_argument("--input", default=str(DEFAULT_INPUT))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--limit", type=int, default=344, help="Maximum rows to process")
+    parser.add_argument("--provider", choices=("auto", "google", "nominatim"), default="auto")
+    parser.add_argument("--delay", type=float, default=1.1, help="Delay between Nominatim requests")
     args = parser.parse_args()
 
     source = Path(args.input)
@@ -60,16 +87,28 @@ def main():
     if not source.exists():
         raise SystemExit(f"Input CSV not found: {source}")
 
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
+    provider = args.provider
+    if provider == "auto":
+        provider = "google" if api_key else "nominatim"
+    if provider == "google" and not api_key:
+        raise SystemExit("GOOGLE_MAPS_API_KEY is required for --provider google.")
+    if provider == "google":
+        try:
+            import googlemaps  # noqa: F401
+        except ImportError as exc:
+            raise SystemExit("Install backend dependencies first; googlemaps is required.") from exc
+
     with source.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         original_fields = list(reader.fieldnames or [])
-        rows = list(reader)[:args.limit]
+        rows = list(reader)[:max(0, args.limit)]
     if not original_fields:
         raise SystemExit("Input CSV has no header row")
 
     extra_fields = [
         "latitude", "longitude", "geocode_display_name", "geocode_type",
-        "geocode_class", "coordinate_precision", "geocode_status"
+        "geocode_class", "geocode_provider", "coordinate_precision", "geocode_status"
     ]
     output_rows = []
     for index, row in enumerate(rows, start=1):
@@ -83,25 +122,26 @@ def main():
         row.update({
             "latitude": lat,
             "longitude": lon,
-            "geocode_display_name": "",
-            "geocode_type": "",
-            "geocode_class": "",
+            "geocode_display_name": get(row, "geocode_display_name"),
+            "geocode_type": get(row, "geocode_type"),
+            "geocode_class": get(row, "geocode_class"),
+            "geocode_provider": get(row, "geocode_provider"),
             "coordinate_precision": "existing_source_coordinates" if existing else "",
             "geocode_status": "existing_coordinates" if existing else "pending",
         })
         if not existing and name:
             try:
-                hit = query_nominatim(query)
+                hit = query_google(query, api_key) if provider == "google" else query_nominatim(query)
                 if hit:
                     row.update(hit)
-                    row["coordinate_precision"] = "approximate_geocoded_match"
+                    row["coordinate_precision"] = "provider_geocode_candidate"
                     row["geocode_status"] = "needs_manual_review"
                 else:
                     row["geocode_status"] = "not_found"
             except Exception as exc:
                 row["geocode_status"] = "geocoder_error:" + type(exc).__name__
-            # Nominatim public service policy requires at most one request/second.
-            time.sleep(1.1)
+            if provider == "nominatim":
+                time.sleep(max(1.0, args.delay))
         elif not name and not existing:
             row["geocode_status"] = "missing_station_name"
         output_rows.append(row)
@@ -120,8 +160,8 @@ def main():
         counts[key] = counts.get(key, 0) + 1
     print(json.dumps({
         "input": str(source), "output": str(destination), "rows_processed": len(rows),
-        "status_counts": counts,
-        "note": "Geocoded coordinates are approximate candidate matches; manually review before spatial decisions."
+        "provider": provider, "status_counts": counts,
+        "note": "Geocoded coordinates are candidate matches. Manually review each match before spatial decisions."
     }, indent=2))
 
 
