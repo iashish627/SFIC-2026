@@ -1,0 +1,9 @@
+station_id,effective_capacity_kg_day,dispenser_count,operating_hours_per_day,valid_from,valid_to,provenance_type,source
+SYN-GJ-001,2600,6,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-002,2200,5,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-003,1500,4,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-004,1700,4,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-005,2400,6,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-006,2800,7,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-007,3000,8,24,2026-07-01,,synthetic,generated_for_demo
+SYN-GJ-008,1900,5,24,2026-07-01,,synthetic,generated_for_demo
