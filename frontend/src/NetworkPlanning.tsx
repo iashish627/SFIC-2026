@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Circle, CircleMarker, MapContainer, TileLayer, Tooltip, useMapEvents } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 type Station = { station_id: string; station_name: string; latitude?: number|string; longitude?: number|string; lat?: number|string; lon?: number|string; lng?: number|string; [key:string]: unknown };
@@ -34,7 +33,7 @@ export default function NetworkPlanning({stations}:Props) {
  const options=[
   {name:"A · No change",capacity:cap,incremental:0,description:"Keep current station capacity unchanged."},
   {name:"B · Expand existing",capacity:cap+addCap,incremental:Math.min(demand,cap+addCap)-Math.min(demand,cap),description:"Increase existing station capacity by the assumed amount."},
-  {name:"C · Build new station",capacity:cap+newCap,incremental:Math.max(0,Math.min(demand,newCap)-diverted),description:"New station potential less assumed demand diverted from nearby stations."}
+  {name:"C · Build new station",capacity:cap+newCap,incremental:Math.max(0,Math.min(demand,cap+newCap)-Math.min(demand,cap)-diverted),description:"New station potential less assumed demand diverted from nearby stations."}
  ];
  return <section className="planning-wrap">
   <div className="section-heading"><div><div className="eyebrow">GEOSPATIAL + INVESTMENT OPTIONS</div><h2>Network planning lab</h2></div><span className="tag purple">ASSUMPTION-BASED</span></div>
