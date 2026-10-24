@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { apiGet } from "./api";
 
@@ -19,8 +20,7 @@ function FitStations({ stations }: { stations: GISStation[] }) {
   useEffect(() => {
     if (stations.length === 1) map.setView([stations[0].latitude, stations[0].longitude], 12);
     else if (stations.length > 1) {
-      const L = (window as unknown as { L?: typeof import("leaflet") }).L;
-      if (L) map.fitBounds(stations.map(s => [s.latitude, s.longitude] as [number, number]), { padding: [24, 24] });
+      map.fitBounds(L.latLngBounds(stations.map(s => [s.latitude, s.longitude] as [number, number])), { padding: [24, 24] });
     }
   }, [stations, map]);
   return null;
