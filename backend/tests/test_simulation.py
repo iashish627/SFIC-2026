@@ -37,6 +37,16 @@ def test_diversion_never_exceeds_new_site_sales_or_breaks_network_balance(statio
     assert m["estimated_diverted_demand_kg"] <= m["new_site_sales_kg"]
     assert abs(c["forecast_demand_kg"] - c["served_demand_kg"] - c["unmet_demand_kg"]) < 0.02
 
+def test_diversion_is_capped_by_existing_network_demand(stations):
+    r=run_simulation([Station("A",1,1)],horizon_days=5,
+        new_site_potential_kg_day=100,new_site_capacity_kg_day=100,diversion_pct=100)
+    m=r["new_site_metrics"]
+    assert m["new_site_sales_kg"] == 500
+    assert m["estimated_diverted_demand_kg"] == 5
+    assert m["net_incremental_demand_kg"] == 495
+    c=next(s for s in r["scenarios"] if s["scenario"]=="C_BUILD_NEW")
+    assert abs(c["forecast_demand_kg"] - c["served_demand_kg"] - c["unmet_demand_kg"]) < 0.02
+
 def test_rejects_invalid_shock_day(stations):
     with pytest.raises(ValueError): run_simulation(stations,horizon_days=5,shock_days=[6])
 
