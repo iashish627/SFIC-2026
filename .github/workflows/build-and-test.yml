@@ -32,4 +32,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r backend/requirements.txt
-      - run: pytest -q backend/tests
+      - name: Run backend tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest -q backend/tests
