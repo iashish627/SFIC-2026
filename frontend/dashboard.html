@@ -89,6 +89,74 @@
         <a href="data.html">Import real CSVs in Data Center</a>
       </div>
 
+      <section class="card" style="margin-bottom:1.25rem;padding:1.25rem;border:1px solid #cbd5e1;border-radius:12px;background:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div><h2 style="font-size:1rem;font-weight:700">Live station demand forecast</h2><p style="font-size:.8rem;color:#64748b;margin-top:.25rem">Connected to the local FastAPI service. Estimated values are assumptions, not actual sales.</p></div>
+          <span id="liveApiStatus" class="badge">Checking API…</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin-top:1rem">
+          <label style="font-size:.8rem">Station<select id="liveStation" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"><option value="">Loading stations…</option></select></label>
+          <label style="font-size:.8rem">Start date<input id="liveStartDate" type="date" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
+          <label style="font-size:.8rem">Days (1–30)<input id="liveDays" type="number" min="1" max="30" value="7" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
+          <label style="font-size:.8rem">Assumed demand (kg/day)<input id="liveBaseDemand" type="number" min="1" value="1200" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
+        </div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:1rem">
+          <button id="liveGenerate" class="btn btn-primary" type="button">Generate forecast</button>
+          <label style="font-size:.8rem">Demand surge % <input id="liveUplift" type="number" min="0" max="1000" value="20" style="width:90px;padding:.5rem;border:1px solid #cbd5e1;border-radius:8px"></label>
+          <button id="liveShock" class="btn btn-ghost" type="button">Run demand-shock scenario</button>
+        </div>
+        <p id="liveMessage" role="status" style="font-size:.8rem;margin-top:.8rem;color:#475569">Loading station data…</p>
+        <div id="liveResults" style="overflow:auto;margin-top:.8rem"></div>
+      </section>
+      <script>
+      (() => {
+        const api = (window.CNG_FORECAST_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
+        const byId = id => document.getElementById(id);
+        const status = byId('liveApiStatus'), message = byId('liveMessage'), station = byId('liveStation');
+        const today = new Date(); byId('liveStartDate').value = new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+        const showError = err => { message.textContent = 'API error: ' + (err.message || err); status.textContent = 'API error'; };
+        async function request(path, options) {
+          const response = await fetch(api + path, options);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.detail?.message || data.detail || ('HTTP ' + response.status));
+          return data;
+        }
+        async function loadStations() {
+          try {
+            const data = await request('/api/v1/forecast/stations');
+            station.innerHTML = '';
+            (data.stations || []).forEach(s => { const opt = document.createElement('option'); opt.value = s.station_id; opt.textContent = s.station_name + ' (' + s.station_id + ')'; station.appendChild(opt); });
+            if (!station.options.length) throw new Error('No station records found in configured CSV.');
+            status.textContent = 'API connected'; message.textContent = 'Loaded ' + (data.total_count ?? station.options.length) + ' station records.';
+          } catch (err) { station.innerHTML = '<option value="">Stations unavailable</option>'; showError(err); }
+        }
+        function table(rows, scenario) {
+          if (!rows.length) return '<p>No results returned.</p>';
+          const headers = scenario ? ['Date','Baseline (kg/day)','Scenario (kg/day)'] : ['Date','Estimated demand (kg/day)'];
+          return '<p style="font-size:.8rem;margin-bottom:.5rem"><strong>' + rows.length + ' daily rows</strong> · ' + (scenario ? 'Hypothetical scenario' : 'Estimated forecast') + '</p><table style="width:100%;border-collapse:collapse;font-size:.8rem"><thead><tr>' + headers.map(h=>'<th style="text-align:left;padding:.6rem;border-bottom:1px solid #cbd5e1">'+h+'</th>').join('') + '</tr></thead><tbody>' + rows.map(r=>'<tr>' + (scenario ? [r.date, r.baseline_demand_kg, r.scenario_demand_kg] : [r.date, r.predicted_demand_kg]).map(v=>'<td style="padding:.55rem;border-bottom:1px solid #e2e8f0">'+v+'</td>').join('') + '</tr>').join('') + '</tbody></table>';
+        }
+        byId('liveGenerate').addEventListener('click', async () => {
+          try {
+            message.textContent = 'Generating forecast…';
+            const data = await request('/api/v1/forecast/generate', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({station_ids:[station.value],start_date:byId('liveStartDate').value,days:Number(byId('liveDays').value),mode:'estimated',base_demand_kg:Number(byId('liveBaseDemand').value)})});
+            byId('liveResults').innerHTML = table(data.forecast_data || [], false);
+            message.textContent = data.metadata?.warning || 'Forecast generated.';
+          } catch(err) { showError(err); }
+        });
+        byId('liveShock').addEventListener('click', async () => {
+          try {
+            const start = byId('liveStartDate').value, days = Math.max(1, Math.min(30, Number(byId('liveDays').value) || 7));
+            const endDate = new Date(start + 'T12:00:00'); endDate.setDate(endDate.getDate()+days-1);
+            message.textContent = 'Running demand-shock scenario…';
+            const data = await request('/api/v1/forecast/scenario/demand-shock', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({station_ids:[station.value],start_date:start,end_date:endDate.toISOString().slice(0,10),uplift_percentage:Number(byId('liveUplift').value),base_demand_kg:Number(byId('liveBaseDemand').value)})});
+            byId('liveResults').innerHTML = table(data.scenario_data || [], true);
+            message.textContent = data.metadata?.warning || 'Scenario generated.';
+          } catch(err) { showError(err); }
+        });
+        loadStations();
+      })();
+      </script>
+
       <!-- KPI row – matches reference layout -->
       <div class="kpi-grid" style="margin-bottom:1.25rem">
         <div class="kpi">
