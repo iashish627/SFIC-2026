@@ -7,7 +7,15 @@ python -m pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload --port 8000
 ```
 
-Check `http://localhost:8000/docs` and `GET /api/gis/stations`.
+Check `http://localhost:8000/docs` and open `http://localhost:8000/api/gis/stations` to inspect the returned `items` and `count`.
+
+In a second terminal, serve the static frontend from the repository root:
+
+```bash
+python -m http.server 5173 --directory frontend
+```
+
+Open `http://localhost:5173/map.html`. The map uses `http://localhost:8000/api/gis/stations` by default. Keep both terminals running. If the map shows fewer pins than source rows, that is expected when rows lack usable coordinates or fall outside the map's approximate Gujarat display outline.
 
 ## Load the public outlet discovery layer
 
@@ -45,3 +53,11 @@ python backend/scripts/geocode_station_directory.py --provider nominatim
 
 Output: `member-3-forecasting/data/gujarat_gas_directory_344_geocoded.csv`. Rows are marked `needs_manual_review` when a geocoder returns a result. The top geocoding result can identify a neighborhood or road rather than the exact pump, so do not present those coordinates as verified station locations until reviewed. API usage can incur charges and is subject to Google Maps Platform terms. Keep keys out of source control.
 
+
+## Map troubleshooting
+
+- **Blank map or “API UNAVAILABLE”:** confirm FastAPI is running on port 8000 and open `http://localhost:8000/api/gis/stations` directly. Check browser DevTools Console and Network for failed requests.
+- **Basemap missing but controls render:** check internet access to the tile provider. The map attempts to fall back from its Google-style public tile endpoint to OpenStreetMap tiles; the Google-style endpoint is best-effort, not an official guaranteed integration.
+- **Only a subset of stations appears:** the API returns only coordinate-valid rows. The frontend further filters rows to positive CNG flags and an approximate Gujarat outline. This is not evidence that other directory rows do not exist; they may have missing coordinates or fall outside the coarse outline.
+- **Unexpected data source:** inspect `CNG_STATIONS_CSV` in the backend process environment and check the default source priority documented in [GIS_INTEGRATION.md](GIS_INTEGRATION.md). Restart FastAPI after changing environment variables or source files.
+- **Geocoded locations:** treat returned coordinates as candidates until manually reviewed. Never mark a station verified solely because a geocoder returned a match.
