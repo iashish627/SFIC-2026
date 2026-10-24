@@ -22,6 +22,15 @@
     .gis-kpi strong{display:block;font-size:1.25rem;color:#0f172a}
     .gis-kpi span{font-size:.72rem;color:#64748b}
     .gis-help{font-size:.76rem;color:#64748b;line-height:1.5}
+    .proximity-intro{padding:1rem 1.1rem;margin:.75rem .25rem 1rem;border:1px solid #dbe4ee;border-radius:12px;background:linear-gradient(135deg,#f8fafc 0%,#fff 100%);color:#334155}
+    .proximity-intro h2{margin:0 0 .45rem;font-size:1rem;font-weight:750;color:#0f172a}
+    .proximity-intro p{margin:.35rem 0;font-size:.8rem;line-height:1.6}
+    .proximity-levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:.8rem 0}
+    .proximity-levels div{padding:.7rem;border:1px solid #e2e8f0;border-radius:9px;background:#fff}
+    .proximity-levels strong{display:block;margin-bottom:.25rem;font-size:.78rem;color:#0f766e}
+    .proximity-levels span{display:block;font-size:.74rem;line-height:1.5;color:#64748b}
+    .proximity-purpose{padding-top:.6rem;border-top:1px solid #e2e8f0}
+    @media(max-width:650px){.proximity-levels{grid-template-columns:1fr}}
     @media(max-width:650px){.gis-summary{grid-template-columns:1fr}.gis-tools button{flex:1}}
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -64,9 +73,19 @@
     <div style="padding:1rem 1.5rem">
       <div class="card" style="padding:.5rem">
         <div id="map"></div>
+        <section class="proximity-intro" aria-labelledby="proximityTitle">
+          <h2 id="proximityTitle">Station Proximity Analysis</h2>
+          <p>Assess the nearby CNG network around an existing station or a proposed location. Select a station marker, or choose <strong>Select candidate on map</strong> and click a point inside Gujarat.</p>
+          <div class="proximity-levels">
+            <div><strong>5 km · Immediate vicinity</strong><span>Count mapped stations closest to the selected location.</span></div>
+            <div><strong>10 km · Local coverage</strong><span>Review the wider surrounding station network.</span></div>
+            <div><strong>20 km · Wider network</strong><span>Understand broader station distribution around the location.</span></div>
+          </div>
+          <p class="proximity-purpose"><strong>Why it matters:</strong> Supports preliminary coverage reviews, identification of potentially underserved areas, and screening for possible overlap before considering network expansion.</p>
+        </section>
         <div class="gis-tools"><button type="button" data-radius="5" class="active">5 km radius</button><button type="button" data-radius="10">10 km radius</button><button type="button" data-radius="20">20 km radius</button><button type="button" id="clearCandidate">Clear candidate</button><button type="button" id="useMapClick">Select candidate on map</button></div>
         <div class="gis-summary" aria-live="polite"><div class="gis-kpi"><strong id="count5">—</strong><span>Mapped stations within 5 km</span></div><div class="gis-kpi"><strong id="count10">—</strong><span>Mapped stations within 10 km</span></div><div class="gis-kpi"><strong id="count20">—</strong><span>Mapped stations within 20 km</span></div></div>
-        <p id="candidateStatus" class="gis-help">Click a station marker or select a candidate point on the map to calculate proximity.</p>
+        <p id="candidateStatus" class="gis-help">Select a station or candidate location to count mapped stations within each radius. Counts are based on straight-line distance, not road distance.</p>
         <p id="mapFoot" style="font-size:.75rem;color:#94a3b8;margin:.6rem .25rem .1rem">Loading data…</p>
       </div>
       <div id="mapNote" class="map-note">Showing only records with usable coordinates inside the Gujarat map area. Records without coordinates are omitted; provisional records remain labelled.</div>
