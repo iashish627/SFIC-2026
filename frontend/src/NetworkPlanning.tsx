@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
+import { apiGet } from "./api";
 import { Circle, CircleMarker, MapContainer, TileLayer, Tooltip, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 type Station = { station_id: string; station_name: string; latitude?: number|string; longitude?: number|string; lat?: number|string; lon?: number|string; lng?: number|string; [key:string]: unknown };
 type Props = { stations: Station[] };
+type CandidateAnalysis = { nearby: Station[]; counts_within_km: Record<string, number>; distance_method: string; data_note: string };
 
 function coords(s: Station): [number,number] | null {
  const lat=Number(s.latitude ?? s.lat), lon=Number(s.longitude ?? s.lon ?? s.lng);
@@ -28,6 +30,9 @@ export default function NetworkPlanning({stations}:Props) {
  const [newCapacity,setNewCapacity]=useState("1000");
  const [cannibal,setCannibal]=useState("25");
  const [radius,setRadius]=useState("5");
+ const [apiNearby,setApiNearby]=useState<CandidateAnalysis|null>(null);
+ const [apiNearbyError,setApiNearbyError]=useState("");
+ useEffect(()=>{ let cancelled=false; const params=new URLSearchParams({latitude:String(candidate[0]),longitude:String(candidate[1]),radii_km:"5,10,20"}); apiGet<CandidateAnalysis>("/api/gis/candidate-analysis?"+params.toString()).then(data=>{if(!cancelled){setApiNearby(data);setApiNearbyError("");}}).catch(e=>{if(!cancelled){setApiNearby(null);setApiNearbyError(e instanceof Error?e.message:"GIS analysis API unavailable");}}); return ()=>{cancelled=true;}; },[candidate]);
  const nearest=useMemo(()=>mapped.map(x=>({...x,distance:distanceKm(candidate,x.point)})).sort((a,b)=>a.distance-b.distance),[mapped,candidate]);
  const nearby=nearest.filter(x=>x.distance<=Number(radius));
  const demand=Math.max(0,Number(baseline)||0), cap=Math.max(0,Number(capacity)||0), addCap=Math.max(0,Number(expansion)||0), newCap=Math.max(0,Number(newCapacity)||0), diverted=Math.min(demand,newCap*Math.max(0,Math.min(100,Number(cannibal)||0))/100);
@@ -44,7 +49,7 @@ export default function NetworkPlanning({stations}:Props) {
     {mapped.length ? <MapContainer center={candidate} zoom={10} scrollWheelZoom className="network-map"><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/><CandidatePicker onPick={setCandidate}/><Circle center={candidate} radius={Number(radius)*1000} pathOptions={{color:"#b28aff",fillOpacity:.08}}/><CircleMarker center={candidate} radius={8} pathOptions={{color:"#b28aff",fillColor:"#b28aff",fillOpacity:1}}><Tooltip>Candidate site</Tooltip></CircleMarker>{mapped.map(({station,point})=><CircleMarker key={station.station_id} center={point} radius={5} pathOptions={{color:"#50d6a7",fillColor:"#50d6a7",fillOpacity:.9}}><Tooltip>{station.station_name} · {station.station_id}</Tooltip></CircleMarker>)}</MapContainer> : <div className="map-empty"><MapPin size={26}/><b>No usable station coordinates found</b><p>Station CSV needs latitude/longitude (or lat/lon) columns for map markers. Other fields are not guessed.</p></div>}
     <div className="coords-row"><span>Candidate coordinates</span><b>{candidate[0].toFixed(4)}, {candidate[1].toFixed(4)}</b></div>
     <div className="input-grid"><label>Coverage radius (km)<input type="number" min="1" max="100" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label>Nearby stations<input value={mapped.length?String(nearby.length):"No coordinates"} readOnly/></label></div>
-    <div className="nearby-list">{nearby.slice(0,5).map(x=><div key={x.station.station_id}><span>{x.station.station_name}</span><b>{x.distance.toFixed(1)} km</b></div>)}{mapped.length>0&&!nearby.length&&<p>No mapped station within the selected radius.</p>}</div>
+    <div className="nearby-list"><p>{apiNearby ? `API analysis: ${apiNearby.counts_within_km[radius] ?? "—"} station(s) within ${radius} km.` : apiNearbyError || "Calculating nearby stations from API…"}</p>{(apiNearby?.nearby || nearby.map(x=>({...x.station,distance_km:x.distance}))).filter((s:any)=>Number(s.distance_km)<=Number(radius)).slice(0,5).map((s:any)=><div key={s.station_id}><span>{s.station_name || s.station_id}</span><b>{Number(s.distance_km).toFixed(1)} km</b></div>)}{mapped.length>0&&!nearby.length&&<p>No mapped station within the selected radius.</p>}</div>
    </article>
    <article className="panel"><div className="panel-heading"><div><h3>Compare A / B / C</h3><p>Same assumed demand baseline for each option.</p></div><span className="tag">SIMULATOR</span></div>
     <label>Demand baseline (kg/day)<input type="number" min="0" value={baseline} onChange={e=>setBaseline(e.target.value)}/></label>
