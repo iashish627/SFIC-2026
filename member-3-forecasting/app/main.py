@@ -1,6 +1,7 @@
 """CNG station demand forecast API; estimated values are not observed sales."""
 from __future__ import annotations
 import os
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Literal
@@ -13,7 +14,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIONS_CSV = Path(os.getenv("CNG_STATIONS_CSV", str(BASE_DIR / "data" / "stations.csv"))).expanduser()
 SALES_CSV = Path(os.getenv("CNG_SALES_CSV", str(BASE_DIR / "data" / "daily_sales.csv"))).expanduser()
 CORS_ORIGINS = [x.strip() for x in os.getenv("CNG_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if x.strip()]
-app = FastAPI(title="CNG Demand Forecasting API", version="1.1.0")
+app = FastAPI(title="CNG Demand Forecasting API", version="1.2.0")
+# Make the repository root importable when launched from member-3-forecasting/.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from backend.modules.gis.router import router as gis_router
+app.include_router(gis_router)
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 class ForecastRequest(BaseModel):
