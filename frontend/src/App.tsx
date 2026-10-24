@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, Fuel, MapPin, RefreshCw, Zap, AlertTriangle, ArrowUpRight, Play, Server } from "lucide-react";
 import { apiGet, apiPost } from "./api";
+import NetworkPlanning from "./NetworkPlanning";
 type Station = { station_id: string; station_name: string; [key: string]: unknown };
 type StationsResponse = { success?: boolean; total_count?: number; stations?: Station[] };
 type ForecastRow = { station_id: string; date: string; predicted_demand_kg?: number; baseline_demand_kg?: number; scenario_demand_kg?: number; data_type?: string; model?: string; unit?: string };
@@ -40,6 +41,7 @@ export default function App() {
   <article className="panel"><div className="panel-heading"><div><h3>Demand shock simulator</h3><p>Compare baseline with a hypothetical uplift.</p></div><span className="tag purple">WHAT-IF</span></div><label>Demand uplift (%)<input type="number" min="0" max="1000" value={uplift} onChange={e=>setUplift(e.target.value)}/></label><div className="assumption">Try a hypothetical festival or holiday uplift. The percentage is an assumption.</div><button className="primary purple-btn" disabled={busy||health!=="online"||!stationId||Number(baseDemand)<=0||Number(uplift)<0||Number(uplift)>1000} onClick={runShock}><Zap size={16}/>{busy?"Working…":"Run demand shock"}<ArrowUpRight size={16}/></button>{shock&&<Result title="Scenario response" rows={shock.scenario_data||[]} metadata={shock.metadata}/>}</article></div>
   {stationError&&<div className="error"><AlertTriangle size={17}/><span>{stationError}</span></div>}{error&&<div className="error"><AlertTriangle size={17}/><span>{error}</span></div>}
   <div className="section-heading"><div><div className="eyebrow">DATA TRANSPARENCY</div><h2>Station data status</h2></div></div><article className="panel data-panel"><div className="data-icon"><MapPin size={19}/></div><div><h3>Station master</h3><p>{stationError?stationError:count?count+" station record(s) loaded from the API.":"Waiting for station endpoint."} Historical forecasting requires a genuine sales CSV. Estimated outputs are assumption-based, not actual demand.</p></div><span className={stationError?"tag warn":"tag"}>{stationError?"NOT LOADED":count?"LOADED":"NO DATA"}</span></article>
+  <NetworkPlanning stations={stations}/>
   <footer>Prototype for SFIC 2026 · Forecasts are estimates, not official operational guidance.</footer>
  </section></main>;
 }
