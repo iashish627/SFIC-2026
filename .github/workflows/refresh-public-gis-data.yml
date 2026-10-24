@@ -2,6 +2,10 @@ name: Refresh public GIS outlet data
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/refresh-public-gis-data.yml"
+      - "backend/scripts/import_public_outlets.py"
   schedule:
     - cron: "17 4 * * 1"
 
