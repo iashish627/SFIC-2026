@@ -63,8 +63,27 @@
 
   <script src="js/app.js"></script>
   <script>
+    // Approximate Gujarat mainland outline for a Gujarat-focused view. This is a
+    // display filter, not an authoritative administrative boundary dataset.
+    const GUJARAT_OUTLINE = [
+      [23.8,68.5],[24.7,71.0],[24.6,72.8],[23.7,73.8],[22.8,74.4],
+      [21.7,73.8],[20.7,72.8],[20.1,71.5],[20.7,70.5],[21.1,69.4],
+      [22.0,68.8],[22.8,68.5],[23.8,68.5]
+    ];
     const GUJARAT_BOUNDS = L.latLngBounds([[20.0, 68.0], [24.8, 74.8]]);
-    const map = L.map('map', { maxBounds: GUJARAT_BOUNDS, maxBoundsViscosity: 0.85, minZoom: 6 }).setView([22.5, 72.9], 7);
+    const map = L.map('map', { maxBounds: GUJARAT_BOUNDS, maxBoundsViscosity: 1.0, minZoom: 7 }).setView([22.5, 71.8], 7);
+    function isInsideGujarat(lat, lon) {
+      // Ray-casting point-in-polygon test against the approximate outline.
+      let inside = false;
+      for (let i = 0, j = GUJARAT_OUTLINE.length - 1; i < GUJARAT_OUTLINE.length; j = i++) {
+        const [yi, xi] = GUJARAT_OUTLINE[i];
+        const [yj, xj] = GUJARAT_OUTLINE[j];
+        const crosses = ((xi > lon) !== (xj > lon)) &&
+          (lat < (yj - yi) * (lon - xi) / ((xj - xi) || Number.EPSILON) + yi);
+        if (crosses) inside = !inside;
+      }
+      return inside;
+    }
     // Google Maps-style road basemap. This public Google tile endpoint is
     // best-effort and is not a guaranteed/official Maps Platform integration.
     // For production, use Google Maps Platform with an API key and billing.
@@ -122,6 +141,7 @@
     function draw() {
       markerClusters.clearLayers();
       const filtered = records.filter(row =>
+        isInsideGujarat(Number(row.latitude), Number(row.longitude)) &&
         ['true', '1', 'yes', 'y'].includes(String(row.has_cng ?? '').trim().toLowerCase()) &&
         (!document.getElementById('riskOnly').checked || isRisk(row)) &&
         (!document.getElementById('verifiedOnly').checked || isVerified(row))
@@ -149,11 +169,13 @@
         );
         markerClusters.addLayer(marker);
       });
-      document.getElementById('mapFoot').textContent = filtered.length + ' record(s) shown from ' + records.length + ' coordinate-backed records.';
+      document.getElementById('mapFoot').textContent = filtered.length + ' Gujarat record(s) shown from ' + records.length + ' coordinate-backed API records. Pins outside the approximate Gujarat outline are hidden.';
+      map.setMaxBounds(GUJARAT_BOUNDS);
       if (filtered.length) {
         const bounds = L.latLngBounds(filtered.map(row => [Number(row.latitude), Number(row.longitude)]));
-        if (bounds.isValid()) map.fitBounds(bounds.pad(.12), {maxZoom: 9, maxBounds: GUJARAT_BOUNDS});
-        map.setMaxBounds(GUJARAT_BOUNDS);
+        if (bounds.isValid()) map.fitBounds(bounds.pad(.08), {maxZoom: 9});
+      } else {
+        map.setView([22.5, 71.8], 7);
       }
     }
 
