@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, Fuel, MapPin, RefreshCw, Zap, AlertTriangle, ArrowUpRight, Play, Server } from "lucide-react";
 import { apiGet, apiPost } from "./api";
 import NetworkPlanning from "./NetworkPlanning";
+import GISNetwork from "./GISNetwork";
 type Station = { station_id: string; station_name: string; [key: string]: unknown };
 type StationsResponse = { success?: boolean; total_count?: number; stations?: Station[] };
 type ForecastRow = { station_id: string; date: string; predicted_demand_kg?: number; baseline_demand_kg?: number; scenario_demand_kg?: number; data_type?: string; model?: string; unit?: string };
@@ -42,6 +43,7 @@ export default function App() {
   {stationError&&<div className="error"><AlertTriangle size={17}/><span>{stationError}</span></div>}{error&&<div className="error"><AlertTriangle size={17}/><span>{error}</span></div>}
   <div className="section-heading"><div><div className="eyebrow">DATA TRANSPARENCY</div><h2>Station data status</h2></div></div><article className="panel data-panel"><div className="data-icon"><MapPin size={19}/></div><div><h3>Station master</h3><p>{stationError?stationError:count?count+" station record(s) loaded from the API.":"Waiting for station endpoint."} Historical forecasting requires a genuine sales CSV. Estimated outputs are assumption-based, not actual demand.</p></div><span className={stationError?"tag warn":"tag"}>{stationError?"NOT LOADED":count?"LOADED":"NO DATA"}</span></article>
   <NetworkPlanning stations={stations}/>
+  <GISNetwork />
   <footer>Prototype for SFIC 2026 · Forecasts are estimates, not official operational guidance.</footer>
  </section></main>;
 }
