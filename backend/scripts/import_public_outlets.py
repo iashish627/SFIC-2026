@@ -72,7 +72,7 @@ def normalize(rows, state_filter="Gujarat"):
             "source_url": SOURCE_URL,
             "source_outlet_id": outlet_id,
             "has_cng": has_cng,
-            "source_status": first(row, "status"),
+            "source_status": first(row, "status", "cgd_status"),
             "operator": first(row, "omc", "company", "operator"),
             "authorized_cgd_entity": first(row, "authorized_cgd_entity", "cgd_entity", "entity"),
             "data_confidence": "provisional_public_outlet_mapping",
