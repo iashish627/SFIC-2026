@@ -6,7 +6,7 @@ React + TypeScript + Vite dashboard for the forecasting API.
 1. Start the FastAPI forecasting service on port 8000.
 2. From this directory run `npm install`.
 3. Copy `.env.example` to `.env` and set `VITE_API_BASE_URL=http://localhost:8000` if your API uses a different URL.
-4. Run `npm run dev` and open the URL printed by Vite (normally http://localhost:5173).
+4. Run `npm run dev` and open the forecasting page at http://localhost:5173/forecasting.html. The existing frontend index/login route is preserved.
 
 The dashboard checks `GET /health` and `GET /api/v1/forecast/stations`. The forecast and demand-shock controls call `POST /api/v1/forecast/generate` and `POST /api/v1/forecast/scenario/demand-shock`.
 
