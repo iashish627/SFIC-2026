@@ -63,6 +63,16 @@
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
+    const legend = L.control({position: 'bottomleft'});
+    legend.onAdd = function() {
+      const div = L.DomUtil.create('div', 'map-legend');
+      div.style.cssText = 'background:rgba(255,255,255,.96);padding:10px 12px;border:1px solid #dbe3ed;border-radius:9px;box-shadow:0 2px 8px #0002;font-size:11px;line-height:1.9;color:#334155';
+      div.innerHTML = '<strong>Map legend</strong><br><span style="color:#047857">●</span> Verified operator station<br><span style="color:#b7791f">◌</span> Provisional outlet candidate';
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    legend.addTo(map);
+
     let records = [], layers = [];
     const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
