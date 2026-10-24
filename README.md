@@ -77,12 +77,45 @@ SFIC-2026/
 
 Metrics are only as reliable as their input data and assumptions.
 
-## Initial Setup Status
-The repository contains an initial folder skeleton. The frontend, backend, forecasting, GIS, and simulation implementations still need to be added. Detailed run commands will be added after app scaffolding.
+## Network Map / GIS Feature
+
+The Network Map is a Leaflet-based view of coordinate-backed CNG outlet records returned by the GIS API.
+
+- Displays only records with valid latitude/longitude that fall inside the map's approximate Gujarat display outline; records without usable coordinates are not plotted.
+- Groups nearby markers into clusters. Marker colours distinguish verified operator records from provisional candidates.
+- Station popups show available station identifiers, district, coordinates, source and verification status.
+- Optional filters include risk stations and verified operator stations. Risk filtering depends on utilization fields being present in the data.
+- The map's Gujarat outline is an approximate display filter, not an authoritative administrative boundary. Some edge areas may be omitted; do not use it as a legal/state-border GIS layer.
+- The number shown on the map is the number of mapped records, not the total number of stations in Gujarat or the total directory size.
+
+### Run locally
+
+From the repository root, install backend dependencies and start FastAPI:
+
+```bash
+python -m pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload --port 8000
+```
+
+In a second terminal, serve the static frontend:
+
+```bash
+python -m http.server 5173 --directory frontend
+```
+
+Open `http://localhost:5173/map.html`. The map requests `http://localhost:8000/api/gis/stations` by default. Keep the backend running. If using another API host, configure `window.CNG_GIS_API_BASE` before the map script loads.
+
+### GIS data source priority
+
+The GIS backend selects the first available default file in this order:
+1. `member-3-forecasting/data/gujarat_gas_directory_344_geocoded.csv`
+2. `member-3-forecasting/data/gujarat_gas_directory_344_records.csv`
+3. `data/processed/stations.csv` (public outlet mapping; provisional)
+
+Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`; rows without coordinates are skipped. The 344-record source file is not currently included in this repository, so a local copy is needed to use it. Geocoding output is a candidate match and must be manually reviewed before calling a location verified. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
 
 ## Project Status
-**Stage:** Initial repository and project structure  
-**Next milestones:** Set up the React frontend, create the FastAPI backend skeleton, prepare a sourced station dataset, and define shared module input/output contracts.
+**Stage:** Hackathon prototype with an implemented GIS API and Network Map page. Forecasting, site-selection and simulator integrations may still be incomplete; check their module documentation and actual runtime status before relying on them.
 
 ---
 Built as a student hackathon prototype for SFIC 2026.
