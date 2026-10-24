@@ -24,12 +24,12 @@ jobs:
         run: python backend/scripts/import_public_outlets.py --out data/processed/stations.csv
       - name: Commit refreshed source snapshot
         run: |
-          if git diff --quiet -- data/processed/stations.csv; then
+          git add -f data/processed/stations.csv
+          if git diff --cached --quiet -- data/processed/stations.csv; then
             echo "No data changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/processed/stations.csv
-          git commit -m "Refresh provisional public GIS outlet snapshot"
+          git commit -m "Add or refresh provisional public GIS outlet snapshot"
           git push
