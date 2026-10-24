@@ -14,6 +14,15 @@
     .map-note{padding:.8rem 1rem;margin:.75rem 0;border:1px solid #d6a34d;background:#fff7e6;color:#8a5310;border-radius:10px;font-size:.78rem;line-height:1.5}
     .map-filters{display:flex;gap:.85rem;align-items:center;flex-wrap:wrap}
     .map-filters label{display:flex;gap:.35rem;align-items:center;font-size:.78rem;cursor:pointer}
+    .gis-tools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.75rem 0}
+    .gis-tools button{border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#334155;padding:.5rem .8rem;font-size:.78rem;font-weight:650;cursor:pointer}
+    .gis-tools button.active{background:#0f766e;color:#fff;border-color:#0f766e}
+    .gis-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin:.75rem 0}
+    .gis-kpi{padding:.8rem;border:1px solid #e2e8f0;border-radius:12px;background:#fff}
+    .gis-kpi strong{display:block;font-size:1.25rem;color:#0f172a}
+    .gis-kpi span{font-size:.72rem;color:#64748b}
+    .gis-help{font-size:.76rem;color:#64748b;line-height:1.5}
+    @media(max-width:650px){.gis-summary{grid-template-columns:1fr}.gis-tools button{flex:1}}
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -55,6 +64,9 @@
     <div style="padding:1rem 1.5rem">
       <div class="card" style="padding:.5rem">
         <div id="map"></div>
+        <div class="gis-tools"><button type="button" data-radius="5" class="active">5 km radius</button><button type="button" data-radius="10">10 km radius</button><button type="button" data-radius="20">20 km radius</button><button type="button" id="clearCandidate">Clear candidate</button><button type="button" id="useMapClick">Select candidate on map</button></div>
+        <div class="gis-summary" aria-live="polite"><div class="gis-kpi"><strong id="count5">—</strong><span>Mapped stations within 5 km</span></div><div class="gis-kpi"><strong id="count10">—</strong><span>Mapped stations within 10 km</span></div><div class="gis-kpi"><strong id="count20">—</strong><span>Mapped stations within 20 km</span></div></div>
+        <p id="candidateStatus" class="gis-help">Click a station marker or select a candidate point on the map to calculate proximity.</p>
         <p id="mapFoot" style="font-size:.75rem;color:#94a3b8;margin:.6rem .25rem .1rem">Loading data…</p>
       </div>
       <div id="mapNote" class="map-note">Showing only records with usable coordinates inside the Gujarat map area. Records without coordinates are omitted; provisional records remain labelled.</div>
@@ -115,7 +127,7 @@
     };
     legend.addTo(map);
 
-    let records = [];
+    let records = [], activeRadii = [5], candidatePoint = null, candidateMarker = null, radiusCircles = [], selectingCandidate = false;
     const markerClusters = L.markerClusterGroup({
       chunkedLoading: true,
       spiderfyOnMaxZoom: true,
@@ -170,6 +182,8 @@
         markerClusters.addLayer(marker);
       });
       document.getElementById('mapFoot').textContent = filtered.length + ' mapped station(s) shown. Only records with valid coordinates inside the Gujarat map area are displayed; records without coordinates are omitted.';
+      window.visibleGujaratStations = filtered;
+      if (candidatePoint) updateProximity();
       map.setMaxBounds(GUJARAT_BOUNDS);
       if (filtered.length) {
         const bounds = L.latLngBounds(filtered.map(row => [Number(row.latitude), Number(row.longitude)]));
@@ -203,6 +217,22 @@
         note.textContent = 'Could not load /api/gis/stations (' + (error instanceof Error ? error.message : 'network error') + '). Start the FastAPI backend on port 8000. Illustrative markers are disabled.';
       }
     }
+
+    function updateProximity() {
+      radiusCircles.forEach(circle => map.removeLayer(circle)); radiusCircles = [];
+      if (!candidatePoint) { [5,10,20].forEach(r=>document.getElementById('count'+r).textContent='—'); document.getElementById('candidateStatus').textContent='Click a station marker or select a candidate point on the map to calculate proximity.'; if(candidateMarker){map.removeLayer(candidateMarker);candidateMarker=null;} return; }
+      const stations=window.visibleGujaratStations||[];
+      const distances=stations.map(row=>{const lat=Number(row.latitude),lon=Number(row.longitude),p=Math.PI/180,dLat=(lat-candidatePoint.lat)*p,dLon=(lon-candidatePoint.lon)*p,a=Math.sin(dLat/2)**2+Math.cos(candidatePoint.lat*p)*Math.cos(lat*p)*Math.sin(dLon/2)**2;return {row,km:6371.0088*2*Math.asin(Math.sqrt(Math.min(1,a)))};});
+      [5,10,20].forEach(r=>{const n=distances.filter(x=>x.km<=r&&String(x.row.station_id||'')!==String(candidatePoint.stationId||'')).length;document.getElementById('count'+r).textContent=n;if(activeRadii.includes(r))radiusCircles.push(L.circle([candidatePoint.lat,candidatePoint.lon],{radius:r*1000,color:r===5?'#0f766e':r===10?'#2563eb':'#d97706',weight:2,fillColor:r===5?'#0f766e':r===10?'#2563eb':'#d97706',fillOpacity:.07,dashArray:r===20?'7 6':null}).addTo(map));});
+      document.getElementById('candidateStatus').textContent=candidatePoint.label+' · '+candidatePoint.lat.toFixed(5)+', '+candidatePoint.lon.toFixed(5)+'. Counts use mapped stations and straight-line Haversine distance, not road travel time.';
+      if(candidateMarker)map.removeLayer(candidateMarker);
+      candidateMarker=L.marker([candidatePoint.lat,candidatePoint.lon],{icon:L.divIcon({className:'candidate-pin',html:'<div style="width:18px;height:18px;background:#111827;border:3px solid white;border-radius:50%;box-shadow:0 1px 7px #0007"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).bindPopup('Coverage candidate<br>5 km: '+document.getElementById('count5').textContent+'<br>10 km: '+document.getElementById('count10').textContent+'<br>20 km: '+document.getElementById('count20').textContent).addTo(map);
+    }
+    map.on('popupopen', event=>{const row=records.find(r=>Number(r.latitude)===event.popup._source.getLatLng().lat&&Number(r.longitude)===event.popup._source.getLatLng().lng);if(row){candidatePoint={lat:Number(row.latitude),lon:Number(row.longitude),label:String(row.station_name||row.name||row.station_id||'Selected station'),stationId:String(row.station_id||'')};updateProximity();}});
+    document.querySelectorAll('[data-radius]').forEach(button=>button.addEventListener('click',()=>{const r=Number(button.dataset.radius);activeRadii=activeRadii.includes(r)?activeRadii.filter(x=>x!==r):[...activeRadii,r];if(!activeRadii.length)activeRadii=[r];document.querySelectorAll('[data-radius]').forEach(b=>b.classList.toggle('active',activeRadii.includes(Number(b.dataset.radius))));if(candidatePoint)updateProximity();}));
+    document.getElementById('clearCandidate').addEventListener('click',()=>{candidatePoint=null;updateProximity();});
+    document.getElementById('useMapClick').addEventListener('click',event=>{selectingCandidate=!selectingCandidate;event.currentTarget.classList.toggle('active',selectingCandidate);event.currentTarget.textContent=selectingCandidate?'Click map to place candidate…':'Select candidate on map';document.getElementById('candidateStatus').textContent=selectingCandidate?'Click a point inside Gujarat on the map.':'Candidate placement cancelled.';});
+    map.on('click',event=>{if(!selectingCandidate)return;if(!isInsideGujarat(event.latlng.lat,event.latlng.lng)){document.getElementById('candidateStatus').textContent='Choose a point inside the approximate Gujarat map area.';return;}candidatePoint={lat:event.latlng.lat,lon:event.latlng.lng,label:'Custom candidate location',stationId:''};selectingCandidate=false;document.getElementById('useMapClick').classList.remove('active');document.getElementById('useMapClick').textContent='Select candidate on map';updateProximity();});
     document.getElementById('riskOnly').addEventListener('change', draw);
     document.getElementById('verifiedOnly').addEventListener('change', draw);
     loadMapData();
