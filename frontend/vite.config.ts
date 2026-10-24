@@ -4,5 +4,5 @@ import { resolve } from "node:path";
 export default defineConfig({
   plugins: [react()],
   server: { port: 5173 },
-  build: { rollupOptions: { input: { main: resolve(__dirname, "index.html"), forecasting: resolve(__dirname, "forecasting.html") } } }
+  build: { rollupOptions: { input: { main: resolve(process.cwd(), "index.html"), forecasting: resolve(process.cwd(), "forecasting.html") } } }
 });
