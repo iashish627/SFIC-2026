@@ -6,7 +6,7 @@ type StationsResponse = { success?: boolean; total_count?: number; stations?: St
 type ForecastRow = { station_id: string; date: string; predicted_demand_kg?: number; baseline_demand_kg?: number; scenario_demand_kg?: number; data_type?: string; model?: string; unit?: string };
 type ForecastResponse = { success?: boolean; mode?: string; forecast_data?: ForecastRow[]; scenario_data?: ForecastRow[]; metadata?: Record<string, unknown> };
 const today = () => new Date().toISOString().slice(0, 10);
-const afterDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const endAfter = (start: string, n: number) => { const d = new Date(`${start}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 export default function App() {
  const [health,setHealth] = useState<"checking"|"online"|"offline">("checking");
  const [stations,setStations] = useState<Station[]>([]);
@@ -24,7 +24,7 @@ export default function App() {
  async function load(){setHealth("checking");setStationError("");try{await apiGet("/health");setHealth("online");}catch{setHealth("offline");}try{const result=await apiGet<StationsResponse>("/api/v1/forecast/stations");setStations(result.stations||[]);if(result.stations?.length)setStationId(old=>old||result.stations![0].station_id);}catch(e){setStationError(e instanceof Error?e.message:"Could not load station list");}}
  useEffect(()=>{void load();},[]);
  async function generate(){setBusy(true);setError("");setForecast(null);try{if(!selectedIds.length)throw new Error("Load station data and select a station first.");setForecast(await apiPost<ForecastResponse>("/api/v1/forecast/generate",{station_ids:selectedIds,start_date:startDate,days:Number(days),mode:"estimated",base_demand_kg:Number(baseDemand)}));}catch(e){setError(e instanceof Error?e.message:"Forecast request failed");}finally{setBusy(false);}}
- async function runShock(){setBusy(true);setError("");setShock(null);try{if(!selectedIds.length)throw new Error("Load station data and select a station first.");setShock(await apiPost<ForecastResponse>("/api/v1/forecast/scenario/demand-shock",{station_ids:selectedIds,start_date:startDate,end_date:afterDays(Number(days)-1),uplift_percentage:Number(uplift),base_demand_kg:Number(baseDemand)}));}catch(e){setError(e instanceof Error?e.message:"Scenario request failed");}finally{setBusy(false);}}
+ async function runShock(){setBusy(true);setError("");setShock(null);try{if(!selectedIds.length)throw new Error("Load station data and select a station first.");setShock(await apiPost<ForecastResponse>("/api/v1/forecast/scenario/demand-shock",{station_ids:selectedIds,start_date:startDate,end_date:endAfter(startDate,Number(days)-1),uplift_percentage:Number(uplift),base_demand_kg:Number(baseDemand)}));}catch(e){setError(e instanceof Error?e.message:"Scenario request failed");}finally{setBusy(false);}}
  const count=stations.length;
  return <main className="shell">
   <aside className="sidebar"><div className="brand"><div className="brand-icon"><Fuel size={22}/></div><div><b>CNG INTELLIGENCE</b><small>NETWORK CONTROL</small></div></div><div className="nav-label">WORKSPACE</div><div className="nav-item active"><Activity size={17}/> Overview</div><div className="nav-item"><MapPin size={17}/> Station network</div><div className="nav-item"><Zap size={17}/> Demand forecast</div><div className="sidebar-bottom"><span className={health==="online"?"dot":"dot dim"}/><span>Forecast API</span><b className="api-state">{health}</b></div></aside>
