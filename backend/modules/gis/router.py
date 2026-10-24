@@ -8,7 +8,12 @@ from fastapi import APIRouter, HTTPException, Query
 from .analysis import nearby_stations
 
 router = APIRouter(prefix="/api/gis", tags=["GIS"])
-DEFAULT_CSV = Path(__file__).resolve().parents[3] / "data" / "processed" / "stations.csv"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+# Prefer the 344-record Gujarat Gas directory extract when available locally.
+# Otherwise fall back to the explicitly provisional public-outlet snapshot.
+GUJARAT_GAS_344_CSV = REPO_ROOT / "member-3-forecasting" / "data" / "gujarat_gas_directory_344_records.csv"
+PUBLIC_CSV = REPO_ROOT / "data" / "processed" / "stations.csv"
+DEFAULT_CSV = GUJARAT_GAS_344_CSV if GUJARAT_GAS_344_CSV.exists() else PUBLIC_CSV
 
 
 def load_stations():
@@ -19,12 +24,17 @@ def load_stations():
         stations = []
         for row in csv.DictReader(f):
             try:
-                lat, lon = float(row["latitude"]), float(row["longitude"])
+                lat_raw = row.get("latitude") or row.get("lat") or row.get("Latitude")
+                lon_raw = row.get("longitude") or row.get("lon") or row.get("lng") or row.get("Longitude")
+                lat, lon = float(lat_raw), float(lon_raw)
                 if -90 <= lat <= 90 and -180 <= lon <= 180:
                     stations.append({
                         **row,
+                        "station_id": row.get("station_id") or row.get("outlet_id") or row.get("id") or row.get("station_code") or row.get("name"),
+                        "station_name": row.get("station_name") or row.get("name") or row.get("outlet_name") or row.get("station"),
                         "latitude": lat,
                         "longitude": lon,
+                        "has_cng": row.get("has_cng", row.get("cng_available", row.get("CNG", "true"))),
                         "verified_gujarat_gas_station": str(
                             row.get("verified_gujarat_gas_station", "unknown")
                         ).lower() == "true",
