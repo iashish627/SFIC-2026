@@ -6,12 +6,15 @@
   <title>Network Map · CNG Network Intelligence</title>
   <link rel="stylesheet" href="css/app.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <style>
     .map-note{padding:.8rem 1rem;margin:.75rem 0;border:1px solid #d6a34d;background:#fff7e6;color:#8a5310;border-radius:10px;font-size:.78rem;line-height:1.5}
     .map-filters{display:flex;gap:.85rem;align-items:center;flex-wrap:wrap}
     .map-filters label{display:flex;gap:.35rem;align-items:center;font-size:.78rem;cursor:pointer}
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <style>#map{height:calc(100vh - 140px);min-height:500px;border-radius:14px}</style>
 </head>
 <body>
@@ -73,7 +76,23 @@
     };
     legend.addTo(map);
 
-    let records = [], layers = [];
+    let records = [];
+    const markerClusters = L.markerClusterGroup({
+      chunkedLoading: true,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      maxClusterRadius: 48,
+      disableClusteringAtZoom: 13,
+      iconCreateFunction(cluster) {
+        const count = cluster.getChildCount();
+        const size = count >= 100 ? 48 : count >= 20 ? 42 : 34;
+        return L.divIcon({
+          html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(217,119,6,.88);border:3px solid rgba(255,255,255,.95);box-shadow:0 1px 6px #0004;color:#fff;font-weight:700;font-size:12px">' + count + '</div>',
+          className: 'cng-marker-cluster',
+          iconSize: [size, size]
+        });
+      }
+    }).addTo(map);
     const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[ch]));
@@ -81,8 +100,7 @@
     const isRisk = row => Number(row.utilization ?? row.util ?? 0) >= 1;
 
     function draw() {
-      layers.forEach(layer => map.removeLayer(layer));
-      layers = [];
+      markerClusters.clearLayers();
       const filtered = records.filter(row =>
         (!document.getElementById('riskOnly').checked || isRisk(row)) &&
         (!document.getElementById('verifiedOnly').checked || isVerified(row))
@@ -105,12 +123,12 @@
           '<br>Source: ' + esc(row.source || 'not supplied') +
           (row.source_url ? '<br><a href="' + esc(row.source_url) + '" target="_blank" rel="noreferrer">Open source</a>' : '')
         );
-        marker.addTo(map); layers.push(marker);
+        markerClusters.addLayer(marker);
       });
       document.getElementById('mapFoot').textContent = filtered.length + ' record(s) shown from ' + records.length + ' coordinate-backed records.';
       if (filtered.length) {
         const bounds = L.latLngBounds(filtered.map(row => [Number(row.latitude), Number(row.longitude)]));
-        if (bounds.isValid()) map.fitBounds(bounds.pad(.12), {maxZoom: 11});
+        if (bounds.isValid()) map.fitBounds(bounds.pad(.12), {maxZoom: 9});
       }
     }
 
