@@ -58,6 +58,7 @@
           <button id="simRun" class="btn btn-primary" type="button">Run A / B / C comparison</button>
           <button id="simExportJson" class="btn btn-ghost" type="button" disabled>Export decision report (JSON)</button>
           <button id="simExportCsv" class="btn btn-ghost" type="button" disabled>Export scenario comparison (CSV)</button>
+          <button id="simSavedCsv" class="btn btn-ghost" type="button" disabled>Download saved report CSV</button>
           <span id="simMessage" class="desc" role="status">Loading synthetic baseline…</span>
         </div>
       </section>
@@ -80,7 +81,7 @@
       const api = (window.CNG_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
       const byId = id => document.getElementById(id);
       const status = byId('simApiStatus'), message = byId('simMessage');
-      let stations = [], chart, lastResult = null, lastInputs = null;
+      let stations = [], chart, lastResult = null, lastInputs = null, lastScenarioId = null;
       const fmt = n => Number(n || 0).toLocaleString(undefined,{maximumFractionDigits:2});
       async function request(path, options) {
         const response = await fetch(api + path, options);
@@ -116,6 +117,8 @@
       }
       function render(data) {
         lastResult = data;
+        lastScenarioId = data.scenario_id || null;
+        byId('simSavedCsv').disabled = !lastScenarioId;
         byId('simExportJson').disabled = false;
         byId('simExportCsv').disabled = false;
         const s = data.scenarios;
@@ -138,7 +141,7 @@
           if (shockDays.some(x=>!Number.isInteger(x)||x<1||x>horizon)) throw new Error('Each shock day must be an integer within the selected horizon.');
           const payload = {horizon_days:horizon,demand_uplift_pct:readNumber('simUplift'),shock_days:shockDays,expand_station_id:byId('simExpandStation').value,added_capacity_kg_day:readNumber('simAddedCapacity'),expansion_cost:readNumber('simExpansionCost'),new_site_potential_kg_day:readNumber('simNewPotential'),new_site_capacity_kg_day:readNumber('simNewCapacity'),diversion_pct:readNumber('simDiversion'),new_site_cost:readNumber('simNewCost')};
           lastInputs = payload;
-          const data = await request('/api/simulator/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          const data = await request('/api/scenarios/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
           render(data);
         } catch(error) {
           status.textContent = 'API / input error';
@@ -163,6 +166,7 @@
       byId('simRun').addEventListener('click',run);
       byId('simExportJson').addEventListener('click',exportJson);
       byId('simExportCsv').addEventListener('click',exportCsv);
+      byId('simSavedCsv').addEventListener('click',()=>{if(lastScenarioId) window.open(api + '/api/scenarios/' + encodeURIComponent(lastScenarioId) + '/report.csv','_blank');});
       init();
     })();
   </script>
