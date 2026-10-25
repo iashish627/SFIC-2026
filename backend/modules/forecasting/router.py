@@ -125,16 +125,16 @@ def evaluate_forecast(station_id: str, test_days: int = Query(14, ge=7, le=30), 
 def network_forecast(days: int = Query(30, ge=1, le=30), model: str = Query("seasonal_naive", pattern="^(seasonal_naive|moving_average)$")):
     """Aggregate per-station forecasts; stations without valid history are counted as missing."""
     history_by_station = _load_history()
+    usable = {station_id: history for station_id, history in history_by_station.items() if history}
+    if not usable:
+        raise HTTPException(status_code=404, detail="No stations have valid sales history.")
+    network_cutoff = max(max(history) for history in usable.values())
     daily_totals = defaultdict(float)
-    included = 0
-    for station_id, history in history_by_station.items():
+    for history in usable.values():
         observed_days = sorted(history)
-        if not observed_days:
-            continue
         values = [history[d] for d in observed_days]
-        last_day = observed_days[-1]
         for step in range(1, days + 1):
-            target = last_day + timedelta(days=step)
+            target = network_cutoff + timedelta(days=step)
             prior_week = history.get(target - timedelta(days=7))
             if model == "seasonal_naive" and len(values) >= 7 and prior_week is not None:
                 predicted = prior_week
@@ -142,11 +142,9 @@ def network_forecast(days: int = Query(30, ge=1, le=30), model: str = Query("sea
                 window = values[-min(7, len(values)):]
                 predicted = sum(window) / len(window)
             daily_totals[target.isoformat()] += max(0.0, predicted)
-        included += 1
-    if not included:
-        raise HTTPException(status_code=404, detail="No stations have valid sales history.")
+    included = len(usable)
     rows = [{"date": day, "predicted_demand_kg": round(value, 2)} for day, value in sorted(daily_totals.items())]
-    return {"model": model, "model_version": "baseline-v1", "days": days, "stations_included": included, "stations_without_history": max(0, len(_load_station_names()) - included), "provenance": "synthetic_demo", "forecast": rows, "warning": "Network totals aggregate only stations with valid synthetic demo history; this is not an operational network forecast."}
+    return {"model": model, "model_version": "baseline-v1", "data_cutoff": network_cutoff.isoformat(), "days": days, "stations_included": included, "stations_without_history": max(0, len(_load_station_names()) - included), "provenance": "synthetic_demo", "forecast": rows, "warning": "Network totals use one common forecast date range and aggregate only stations with valid synthetic demo history; this is not an operational network forecast."}
 
 
 @router.get("/station/{station_id}")
