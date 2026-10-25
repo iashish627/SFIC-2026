@@ -12,6 +12,7 @@ def test_all_primary_api_modules_are_registered():
     assert client.get("/api/dashboard/summary").status_code == 200
     assert client.get("/api/forecast/stations").status_code == 200
     assert client.get("/api/simulator/demo-inputs").status_code == 200
+    assert client.get("/api/health/data").status_code == 200
 
 def test_simulator_and_forecast_work_on_same_demo_station():
     demo = client.get("/api/simulator/demo-inputs").json()
@@ -43,5 +44,5 @@ def test_frontend_pages_are_connected_to_their_backend_routes():
     assert "/api/forecast/stations" in forecast_page
     assert "/api/forecast/station/" in forecast_page
     assert "/api/simulator/demo-inputs" in simulator_page
-    assert "/api/simulator/run" in simulator_page
+    assert "/api/scenarios/run" in simulator_page
     assert "/api/dashboard/summary" in dashboard_page
