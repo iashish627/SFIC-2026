@@ -56,6 +56,8 @@
         </div>
         <div style="display:flex;gap:.75rem;align-items:center;margin-top:1rem;flex-wrap:wrap">
           <button id="simRun" class="btn btn-primary" type="button">Run A / B / C comparison</button>
+          <button id="simExportJson" class="btn btn-ghost" type="button" disabled>Export decision report (JSON)</button>
+          <button id="simExportCsv" class="btn btn-ghost" type="button" disabled>Export comparison (CSV)</button>
           <span id="simMessage" class="desc" role="status">Loading synthetic baseline…</span>
         </div>
       </section>
@@ -78,7 +80,7 @@
       const api = (window.CNG_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
       const byId = id => document.getElementById(id);
       const status = byId('simApiStatus'), message = byId('simMessage');
-      let stations = [], chart;
+      let stations = [], chart, lastResult = null, lastInputs = null;
       const fmt = n => Number(n || 0).toLocaleString(undefined,{maximumFractionDigits:2});
       async function request(path, options) {
         const response = await fetch(api + path, options);
@@ -94,7 +96,36 @@
       function scenarioHtml(s) {
         return '<dl style="display:grid;grid-template-columns:1fr auto;gap:.45rem;font-size:.82rem"><dt>Forecast demand</dt><dd>'+fmt(s.forecast_demand_kg)+' kg</dd><dt>Served demand</dt><dd>'+fmt(s.served_demand_kg)+' kg</dd><dt>Unmet demand</dt><dd>'+fmt(s.unmet_demand_kg)+' kg</dd><dt>Capacity utilisation</dt><dd>'+fmt(s.capacity_utilisation_pct)+'%</dd><dt>Assumed cost</dt><dd>'+fmt(s.estimated_cost)+'</dd></dl><p class="desc">'+s.assumptions+'</p>';
       }
+      function downloadFile(name, content, type) {
+        const blob = new Blob([content], {type});
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url; anchor.download = name; anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      function exportJson() {
+        if (!lastResult) return;
+        downloadFile('cng-decision-report-' + lastResult.scenario_id + '.json', JSON.stringify({
+          title:'CNG Network Intelligence — Scenario Decision Report',
+          generated_at:lastResult.created_at, scenario_id:lastResult.scenario_id,
+          model_version:lastResult.model_version, provenance:lastResult.provenance,
+          inputs:lastInputs, results:lastResult,
+          disclaimer:'Synthetic demo/user-supplied assumptions only. Not operational Gujarat Gas data or a validated financial/site recommendation.'
+        }, null, 2), 'application/json');
+      }
+      function exportCsv() {
+        if (!lastResult) return;
+        const rows = [
+          ['scenario_id','scenario','forecast_demand_kg','served_demand_kg','unmet_demand_kg','capacity_utilisation_pct','estimated_cost','assumptions'],
+          ...lastResult.scenarios.map(s => [lastResult.scenario_id,s.scenario,s.forecast_demand_kg,s.served_demand_kg,s.unmet_demand_kg,s.capacity_utilisation_pct,s.estimated_cost,s.assumptions])
+        ];
+        const csv = rows.map(row => row.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(',')).join('\r\n');
+        downloadFile('cng-scenario-comparison-' + lastResult.scenario_id + '.csv', csv, 'text/csv;charset=utf-8');
+      }
       function render(data) {
+        lastResult = data;
+        byId('simExportJson').disabled = false;
+        byId('simExportCsv').disabled = false;
         const s = data.scenarios;
         byId('scenarioAResult').innerHTML = scenarioHtml(s[0]);
         byId('scenarioBResult').innerHTML = scenarioHtml(s[1]);
@@ -114,6 +145,7 @@
           if (!Number.isInteger(horizon) || horizon<1 || horizon>365) throw new Error('Horizon must be an integer from 1 to 365.');
           if (shockDays.some(x=>!Number.isInteger(x)||x<1||x>horizon)) throw new Error('Each shock day must be an integer within the selected horizon.');
           const payload = {horizon_days:horizon,demand_uplift_pct:readNumber('simUplift'),shock_days:shockDays,expand_station_id:byId('simExpandStation').value,added_capacity_kg_day:readNumber('simAddedCapacity'),expansion_cost:readNumber('simExpansionCost'),new_site_potential_kg_day:readNumber('simNewPotential'),new_site_capacity_kg_day:readNumber('simNewCapacity'),diversion_pct:readNumber('simDiversion'),new_site_cost:readNumber('simNewCost')};
+          lastInputs = payload;
           const data = await request('/api/scenarios/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
           render(data);
         } catch(error) {
@@ -137,6 +169,8 @@
         }
       }
       byId('simRun').addEventListener('click',run);
+      byId('simExportJson').addEventListener('click',exportJson);
+      byId('simExportCsv').addEventListener('click',exportCsv);
       init();
     })();
   </script>
