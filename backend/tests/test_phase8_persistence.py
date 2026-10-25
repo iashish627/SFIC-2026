@@ -84,3 +84,34 @@ def test_station_forecast_includes_ordered_nonnegative_bounds():
     for row in body["forecast"]:
         assert row["lower_bound_kg"] >= 0
         assert row["lower_bound_kg"] <= row["predicted_demand_kg"] <= row["upper_bound_kg"]
+
+def test_weekly_and_holdout_forecast_endpoints():
+    station_id = "SYN-GJ-001"
+    weekly = client.get(f"/api/forecast/weekly/{station_id}", params={"weeks": 4})
+    assert weekly.status_code == 200
+    assert len(weekly.json()["weekly_forecast"]) == 4
+    assert weekly.json()["provenance"] == "synthetic_demo"
+
+    evaluation = client.get(f"/api/forecast/evaluate/{station_id}", params={"test_days": 14})
+    assert evaluation.status_code == 200
+    body = evaluation.json()
+    assert body["split_type"] == "chronological_holdout"
+    assert body["train_days"] > 0 and body["test_days"] == 14
+    assert body["mae_kg_day"] >= 0 and body["rmse_kg_day"] >= 0
+    assert "synthetic demo series" in body["warning"]
+
+
+def test_remaining_pages_call_real_api_routes():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2] / "frontend"
+    pages = {
+        "stations.html": "/api/gis/stations",
+        "sites.html": "/api/gis/candidate-analysis",
+        "data.html": "/api/health/data",
+        "reports.html": "/api/scenarios",
+        "forecast.html": "/api/forecast/network",
+        "simulator.html": "/api/scenarios/run",
+    }
+    for filename, route in pages.items():
+        source = (root / filename).read_text(encoding="utf-8")
+        assert route in source, f"{filename} is not connected to {route}"
