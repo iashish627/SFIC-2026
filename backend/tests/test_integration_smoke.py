@@ -43,5 +43,5 @@ def test_frontend_pages_are_connected_to_their_backend_routes():
     assert "/api/forecast/stations" in forecast_page
     assert "/api/forecast/station/" in forecast_page
     assert "/api/simulator/demo-inputs" in simulator_page
-    assert "/api/simulator/run" in simulator_page
+    assert "/api/scenarios/run" in simulator_page
     assert "/api/dashboard/summary" in dashboard_page
