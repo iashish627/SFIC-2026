@@ -37,7 +37,8 @@ def test_candidate_analysis_returns_proximity_not_a_fabricated_score():
     assert "nearby" in payload
     assert "counts_within_km" in payload
     assert "interpretation" in payload
-    assert "not a validated catchment" in payload["interpretation"]
+    assert "Straight-line proximity only" in payload["interpretation"]
+    assert "not road travel time" in payload["interpretation"]
     assert "score" not in payload
 
 
@@ -46,7 +47,7 @@ def test_seasonal_naive_uses_exact_calendar_weekday_and_fallback_for_gap(monkeyp
     # A history point exists exactly seven days before the first target date.
     history = {
         "TEST-STATION": {
-            end - timedelta(days=7): 111.0,
+            end - timedelta(days=6): 111.0,
             end - timedelta(days=2): 222.0,
             end: 333.0,
         }
