@@ -76,7 +76,7 @@
           downloadCsv('cng_dashboard_summary.csv',rows);
         }else if(type==='stations'){
           const d=await reportGet('/api/gis/stations');
-          downloadCsv('cng_gis_station_master.csv',(d.items||[]).map(x=>({...x,provenance_note:d.data_note)));
+          downloadCsv('cng_gis_station_master.csv',(d.items||[]).map(x=>({...x,provenance_note:d.data_note})));
         }else if(type==='forecast'){
           const s=await reportGet('/api/forecast/stations');
           const station=s.stations.find(x=>x.valid_history_days>0);
