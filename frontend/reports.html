@@ -35,19 +35,19 @@
     </header>
 
     <div style="padding:1.25rem 1.5rem">
-      <p class="desc" style="margin-bottom:1rem">Exports are generated from the same APIs used by the dashboard. CSV files contain returned API data and explicit provenance/assumptions; no fabricated PDF or Excel reports are generated.</p>
+      <p class="desc" style="margin-bottom:1rem">Exports are generated from live API responses. CSV files include returned data, provenance and assumptions; no fabricated PDF or Excel reports are generated.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('summary')"><h3>Dashboard Data Summary</h3><p class="desc">Current synthetic KPI counts and daily sales series.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('stations')"><h3>GIS Station Master</h3><p class="desc">Configured coordinate-valid station/outlet records with source and verification fields.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('forecast')"><h3>14-Day Station Forecast</h3><p class="desc">Baseline forecast for the first station with valid synthetic history.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('scenario')"><h3>A/B/C Scenario Comparison</h3><p class="desc">Default synthetic-input scenario output, including assumptions and warnings.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('summary')"><h3>Dashboard Data Summary</h3><p class="desc">Synthetic KPI counts and daily sales series.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('stations')"><h3>GIS Station Master</h3><p class="desc">Configured coordinate-valid records and source/verification fields.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('forecast')"><h3>14-Day Station Forecast</h3><p class="desc">Baseline forecast with illustrative bounds and model version.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('scenario')"><h3>A/B/C Scenario Comparison</h3><p class="desc">Runs and saves a scenario with the current demo assumptions.</p><strong style="color:#059669;font-size:.85rem">Run & export CSV →</strong></button>
       </div>
-      <section class="card"><h3>Export status</h3><p id="reportStatus" class="desc" role="status">Exports query live local APIs when clicked. Start FastAPI on port 8000.</p><p class="desc">Limitations: no verified operational sales feed, no validated forecast accuracy, no demand-based candidate ranking, and no PDF/XLSX reporting engine are currently connected.</p></section>
+      <section class="card" style="margin-bottom:1rem"><h3>Saved scenario runs</h3><p class="desc">Completed simulator runs are stored in the local demo database and can be retrieved later.</p><div id="savedScenarioList" style="overflow:auto">Loading saved scenarios…</div></section>
+      <section class="card"><h3>Export status</h3><p id="reportStatus" class="desc" role="status">Exports query local APIs when clicked. Start FastAPI on port 8000.</p><p class="desc">Limitations: data is synthetic/provisional, forecast intervals are illustrative, and candidate-site analysis is proximity-only. Local SQLite persistence is for the single-instance demo, not production deployment.</p></section>
     </div>
   </div>
   <script src="js/app.js"></script>
-  <script>
-    function downloadReport(type) {
+ {
       const names = { risk:'Network_Risk_Summary', sites:'Site_Ranking_Pack', scenario:'Scenario_Comparison', master:'Station_Master_344' };
       // Generate a simple CSV download as demo
       let content = 'Report Type,Generated,Note\n';
