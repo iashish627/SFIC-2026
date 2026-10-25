@@ -75,11 +75,21 @@ def forecast_station(station_id: str, days: int = Query(14, ge=1, le=30), model:
     for step in range(1, days + 1):
         target = last_day + timedelta(days=step)
         if model == "seasonal_naive" and len(values) >= 7:
-            predicted = values[(len(values) - 7 + ((step - 1) % 7)) % len(values)]
+            # Use the same calendar weekday from exactly seven days earlier.
+            # Missing history is handled explicitly instead of shifting across gaps.
+            seasonal_value = history.get(target - timedelta(days=7))
+            if seasonal_value is not None:
+                predicted = seasonal_value
+                row_method = "seasonal_naive_7d"
+            else:
+                window = values[-min(7, len(values)):]
+                predicted = sum(window) / len(window)
+                row_method = "moving_average_fallback_missing_weekday"
             method = "seasonal_naive_7d"
         else:
             window = values[-min(7, len(values)):]
             predicted = sum(window) / len(window)
             method = "moving_average_7d" if model == "moving_average" else "moving_average_fallback"
-        rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2)})
+            row_method = method
+        rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2), "method": row_method})
     return {"station_id": station_id, "days": days, "model": model, "method": method, "provenance": "synthetic_demo", "history": {"valid_days": len(values), "start": observed_days[0].isoformat(), "end": observed_days[-1].isoformat()}, "forecast": rows, "warning": "Baseline demonstration only. Synthetic data; no holdout validation or operational accuracy claim."}
