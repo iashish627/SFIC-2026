@@ -47,17 +47,54 @@
     </div>
   </div>
   <script src="js/app.js"></script>
- {
-      const names = { risk:'Network_Risk_Summary', sites:'Site_Ranking_Pack', scenario:'Scenario_Comparison', master:'Station_Master_344' };
-      // Generate a simple CSV download as demo
-      let content = 'Report Type,Generated,Note\n';
-      content += `${names[type]},${new Date().toISOString()},Synthetic demo export from CNG Network Intelligence\n`;
-      const blob = new Blob([content], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = names[type] + '_demo.csv';
-      a.click();
+  <script>
+    const REPORT_API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');
+    const reportStatus=document.getElementById('reportStatus');
+    async function reportGet(path,options){const r=await fetch(REPORT_API+path,options);const d=await r.json();if(!r.ok)throw new Error(d.detail||'HTTP '+r.status);return d;}
+    function csvCell(v){if(v===null||v===undefined)return '""';const s=typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';}
+    function downloadCsv(filename,rows){
+      if(!rows.length)throw new Error('No data returned for this export.');
+      const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];
+      const csv=[keys.map(csvCell).join(','),...rows.map(row=>keys.map(k=>csvCell(row[k])).join(','))].join('\r\n');
+      const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+      const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
+    async function loadSavedScenarios(){
+      const host=document.getElementById('savedScenarioList');
+      try{
+        const data=await reportGet('/api/scenarios?limit=20');
+        if(!data.scenarios.length){host.textContent='No saved scenarios yet. Run the What-if Simulator first.';return;}
+        host.innerHTML='<table class="data" style="width:100%;font-size:.82rem"><thead><tr><th>Scenario ID</th><th>Created</th><th>Horizon</th><th>Status</th><th>Report</th></tr></thead><tbody>'+data.scenarios.map(s=>'<tr><td style="font-family:ui-monospace">'+s.scenario_id+'</td><td>'+s.created_at+'</td><td>'+s.horizon_days+' days</td><td>'+s.status+'</td><td><a href="'+REPORT_API+'/api/scenarios/'+encodeURIComponent(s.scenario_id)+'/report.csv">Download CSV</a></td></tr>').join('')+'</tbody></table><p class="desc">'+data.warning+'</p>';
+      }catch(e){host.textContent='Saved scenarios unavailable: '+e.message;}
+    }
+    async function downloadReport(type){
+      try{
+        reportStatus.textContent='Fetching live API data…';
+        if(type==='summary'){
+          const d=await reportGet('/api/dashboard/summary');
+          const rows=[{section:'metadata',provenance:d.provenance,data_note:d.data_note,station_count:d.stations.demo_total,capacity_rows_matched:d.stations.with_capacity,located_demo_stations:d.stations.with_valid_coordinates,district_count:d.stations.district_count,valid_sales_records:d.sales.valid_record_count,sales_date_min:d.sales.date_min,sales_date_max:d.sales.date_max},...(d.sales.daily_totals||[]).map(x=>({section:'daily_sales',...x}))];
+          downloadCsv('cng_dashboard_summary.csv',rows);
+        }else if(type==='stations'){
+          const d=await reportGet('/api/gis/stations');
+          downloadCsv('cng_gis_station_master.csv',(d.items||[]).map(x=>({...x,provenance_note:d.data_note)));
+        }else if(type==='forecast'){
+          const s=await reportGet('/api/forecast/stations');
+          const station=s.stations.find(x=>x.valid_history_days>0);
+          if(!station)throw new Error('No station has valid sales history in the synthetic demo dataset.');
+          const d=await reportGet('/api/forecast/station/'+encodeURIComponent(station.station_id)+'?days=14&model=seasonal_naive');
+          downloadCsv('cng_14_day_forecast_'+station.station_id+'.csv',[{section:'metadata',station_id:d.station_id,model:d.model,model_version:d.model_version,method:d.method,interval_method:d.interval_method,provenance:d.provenance,history:d.history,warning:d.warning},...d.forecast.map(x=>({section:'forecast',station_id:d.station_id,...x}))]);
+        }else if(type==='scenario'){
+          const input=await reportGet('/api/simulator/demo-inputs');
+          const stations=input.stations||[];
+          if(!stations.length)throw new Error('No simulator baseline inputs are available.');
+          const d=await reportGet('/api/scenarios/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({horizon_days:30,demand_uplift_pct:25,shock_days:[10,11,12],expand_station_id:stations[0].station_id,added_capacity_kg_day:400,expansion_cost:5000000,new_site_potential_kg_day:900,new_site_capacity_kg_day:1000,diversion_pct:20,new_site_cost:12000000})});
+          downloadCsv('cng_abc_scenario_'+d.scenario_id+'.csv',[{section:'metadata',scenario_id:d.scenario_id,created_at:d.created_at,model_version:d.model_version,provenance:d.provenance,horizon_days:d.horizon_days,shock_days:d.shock_days,demand_uplift_pct_on_shock_days:d.demand_uplift_pct_on_shock_days,warning:(d.warnings||[]).join(' | ')},...(d.scenarios||[]).map(x=>({section:'scenario',...x})),{section:'new_site_metrics',...d.new_site_metrics}]);
+          await loadSavedScenarios();
+        }
+        reportStatus.textContent='Export created from API data. Review provenance and assumptions before using it for decisions.';
+      }catch(e){reportStatus.textContent='Export failed: '+e.message+'. Start FastAPI and check the relevant endpoint.';}
+    }
+    loadSavedScenarios();
   </script>
 </body>
 </html>
