@@ -4,6 +4,7 @@ SQLite is used as a zero-setup local-demo store. Production deployment should
 replace this adapter with the configured PostgreSQL/PostGIS persistence layer.
 """
 import csv
+from contextlib import closing
 import io
 import json
 import sqlite3
@@ -80,12 +81,13 @@ def run_and_save_scenario(request: SimulationRequest):
     outputs["created_at"] = created_at
     outputs["model_version"] = "scenario-engine-v1"
     outputs["status"] = "completed"
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         connection.execute(
             "INSERT INTO scenario_runs (scenario_id, created_at, status, provenance, inputs_json, outputs_json, model_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (scenario_id, created_at, "completed", outputs.get("provenance", "unknown"),
              json.dumps(inputs, sort_keys=True), json.dumps(outputs, sort_keys=True), "scenario-engine-v1"),
         )
+        connection.commit()
     return {"scenario_id": scenario_id, "created_at": created_at, "status": "completed",
             "model_version": "scenario-engine-v1", "inputs": inputs, **outputs}
 
@@ -94,7 +96,7 @@ def run_and_save_scenario(request: SimulationRequest):
 def list_saved_scenarios(limit: int = 20):
     if not 1 <= limit <= 100:
         raise HTTPException(status_code=422, detail="limit must be between 1 and 100")
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         rows = connection.execute(
             "SELECT scenario_id, created_at, status, provenance, model_version, inputs_json, outputs_json FROM scenario_runs ORDER BY created_at DESC LIMIT ?",
             (limit,),
