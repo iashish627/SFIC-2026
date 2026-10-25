@@ -9,6 +9,8 @@ from .analysis import nearby_stations
 router = APIRouter(prefix="/api/gis", tags=["GIS"])
 ROOT = Path(__file__).resolve().parents[3]
 STATION_CSV = ROOT / "data" / "gujarat_gas_directory_344_geocoded.csv"
+# Backwards-compatible alias for modules that report the configured GIS source.
+DEFAULT_CSV = STATION_CSV
 CAPACITY_CSV = ROOT / "data" / "synthetic_demo" / "station_capacity_344_synthetic.csv"
 SALES_CSV = ROOT / "data" / "synthetic_demo" / "station_daily_sales_344_synthetic.csv"
 # Keep compatibility with older placement, but never fall back to the 6,325-record public outlet dump.
