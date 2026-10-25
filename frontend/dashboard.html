@@ -89,105 +89,43 @@
         <a href="data.html">Import real CSVs in Data Center</a>
       </div>
 
-      <section class="card" style="margin-bottom:1.25rem;padding:1.25rem;border:1px solid #cbd5e1;border-radius:12px;background:#fff">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
-          <div><h2 style="font-size:1rem;font-weight:700">Live station demand forecast</h2><p style="font-size:.8rem;color:#64748b;margin-top:.25rem">Connected to the local FastAPI service. Estimated values are assumptions, not actual sales.</p></div>
-          <span id="liveApiStatus" class="badge">Checking API…</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin-top:1rem">
-          <label style="font-size:.8rem">Station<select id="liveStation" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"><option value="">Loading stations…</option></select></label>
-          <label style="font-size:.8rem">Start date<input id="liveStartDate" type="date" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
-          <label style="font-size:.8rem">Days (1–30)<input id="liveDays" type="number" min="1" max="30" value="7" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
-          <label style="font-size:.8rem">Assumed demand (kg/day)<input id="liveBaseDemand" type="number" min="1" value="1200" style="display:block;width:100%;padding:.65rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
-        </div>
-        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:1rem">
-          <button id="liveGenerate" class="btn btn-primary" type="button">Generate forecast</button>
-          <label style="font-size:.8rem">Demand surge % <input id="liveUplift" type="number" min="0" max="1000" value="20" style="width:90px;padding:.5rem;border:1px solid #cbd5e1;border-radius:8px"></label>
-          <button id="liveShock" class="btn btn-ghost" type="button">Run demand-shock scenario</button>
-        </div>
-        <p id="liveMessage" role="status" style="font-size:.8rem;margin-top:.8rem;color:#475569">Loading station data…</p>
-        <div id="liveResults" style="overflow:auto;margin-top:.8rem"></div>
+      <section class="card" style="margin-bottom:1.25rem">
+        <h2 style="font-size:1rem;font-weight:700">Dashboard data status</h2>
+        <p id="dashboardDataNote" role="status" style="font-size:.85rem;color:#475569;margin-top:.5rem">Loading metrics from the dashboard API…</p>
+        <span id="dashboardApiStatus" class="badge">Checking API…</span>
       </section>
-      <script>
-      (() => {
-        const api = (window.CNG_FORECAST_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
-        const byId = id => document.getElementById(id);
-        const status = byId('liveApiStatus'), message = byId('liveMessage'), station = byId('liveStation');
-        const today = new Date(); byId('liveStartDate').value = new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
-        const showError = err => { message.textContent = 'API error: ' + (err.message || err); status.textContent = 'API error'; };
-        async function request(path, options) {
-          const response = await fetch(api + path, options);
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.detail?.message || data.detail || ('HTTP ' + response.status));
-          return data;
-        }
-        async function loadStations() {
-          try {
-            const data = await request('/api/v1/forecast/stations');
-            station.innerHTML = '';
-            (data.stations || []).forEach(s => { const opt = document.createElement('option'); opt.value = s.station_id; opt.textContent = s.station_name + ' (' + s.station_id + ')'; station.appendChild(opt); });
-            if (!station.options.length) throw new Error('No station records found in configured CSV.');
-            status.textContent = 'API connected'; message.textContent = 'Loaded ' + (data.total_count ?? station.options.length) + ' station records.';
-          } catch (err) { station.innerHTML = '<option value="">Stations unavailable</option>'; showError(err); }
-        }
-        function table(rows, scenario) {
-          if (!rows.length) return '<p>No results returned.</p>';
-          const headers = scenario ? ['Date','Baseline (kg/day)','Scenario (kg/day)'] : ['Date','Estimated demand (kg/day)'];
-          return '<p style="font-size:.8rem;margin-bottom:.5rem"><strong>' + rows.length + ' daily rows</strong> · ' + (scenario ? 'Hypothetical scenario' : 'Estimated forecast') + '</p><table style="width:100%;border-collapse:collapse;font-size:.8rem"><thead><tr>' + headers.map(h=>'<th style="text-align:left;padding:.6rem;border-bottom:1px solid #cbd5e1">'+h+'</th>').join('') + '</tr></thead><tbody>' + rows.map(r=>'<tr>' + (scenario ? [r.date, r.baseline_demand_kg, r.scenario_demand_kg] : [r.date, r.predicted_demand_kg]).map(v=>'<td style="padding:.55rem;border-bottom:1px solid #e2e8f0">'+v+'</td>').join('') + '</tr>').join('') + '</tbody></table>';
-        }
-        byId('liveGenerate').addEventListener('click', async () => {
-          try {
-            message.textContent = 'Generating forecast…';
-            const data = await request('/api/v1/forecast/generate', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({station_ids:[station.value],start_date:byId('liveStartDate').value,days:Number(byId('liveDays').value),mode:'estimated',base_demand_kg:Number(byId('liveBaseDemand').value)})});
-            byId('liveResults').innerHTML = table(data.forecast_data || [], false);
-            message.textContent = data.metadata?.warning || 'Forecast generated.';
-          } catch(err) { showError(err); }
-        });
-        byId('liveShock').addEventListener('click', async () => {
-          try {
-            const start = byId('liveStartDate').value, days = Math.max(1, Math.min(30, Number(byId('liveDays').value) || 7));
-            const endDate = new Date(start + 'T12:00:00'); endDate.setDate(endDate.getDate()+days-1);
-            message.textContent = 'Running demand-shock scenario…';
-            const data = await request('/api/v1/forecast/scenario/demand-shock', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({station_ids:[station.value],start_date:start,end_date:endDate.toISOString().slice(0,10),uplift_percentage:Number(byId('liveUplift').value),base_demand_kg:Number(byId('liveBaseDemand').value)})});
-            byId('liveResults').innerHTML = table(data.scenario_data || [], true);
-            message.textContent = data.metadata?.warning || 'Scenario generated.';
-          } catch(err) { showError(err); }
-        });
-        loadStations();
-      })();
-      </script>
 
       <!-- KPI row – matches reference layout -->
       <div class="kpi-grid" style="margin-bottom:1.25rem">
         <div class="kpi">
           <div class="label">Existing stations</div>
-          <div class="value" id="kpiStations">0</div>
-          <div class="sub">Gujarat directory</div>
+          <div class="value" id="kpiStations">—</div>
+          <div class="sub">Synthetic demo station records</div>
         </div>
         <div class="kpi">
           <div class="label">Candidate sites</div>
-          <div class="value" id="kpiCandidates">0</div>
-          <div class="sub">Ranked by demand gap</div>
+          <div class="value" id="kpiCandidates">N/A</div>
+          <div class="sub">Not calculated by this summary</div>
         </div>
         <div class="kpi">
           <div class="label">Districts</div>
-          <div class="value" id="kpiDistricts">0</div>
-          <div class="sub">Covered</div>
+          <div class="value" id="kpiDistricts">—</div>
+          <div class="sub">In demo station data</div>
         </div>
         <div class="kpi">
           <div class="label">Sales records</div>
-          <div class="value" id="kpiSales">0</div>
-          <div class="sub">through 2026-09-30</div>
+          <div class="value" id="kpiSales">—</div>
+          <div class="sub" id="salesDateRange">Valid demo records</div>
         </div>
         <div class="kpi">
           <div class="label">Capacity coverage</div>
-          <div class="value">312/344</div>
-          <div class="sub">stations with capacity</div>
+          <div class="value" id="kpiCapacity">—</div>
+          <div class="sub">Demo stations with capacity</div>
         </div>
         <div class="kpi">
           <div class="label">Located stations</div>
-          <div class="value">0/344</div>
-          <div class="sub" style="color:#d97706">coords need verification</div>
+          <div class="value" id="kpiLocated">—</div>
+          <div class="sub">Demo coordinates; illustrative</div>
         </div>
       </div>
 
@@ -262,85 +200,48 @@
 
   <script src="js/app.js"></script>
   <script>
-    // Show mobile menu button
-    if (window.innerWidth < 1024) document.getElementById('menuBtn').style.display = 'inline-flex';
-    window.addEventListener('resize', () => {
-      document.getElementById('menuBtn').style.display = window.innerWidth < 1024 ? 'inline-flex' : 'none';
-    });
-
-    // Animated KPIs
-    animateValue(document.getElementById('kpiStations'), 344);
-    animateValue(document.getElementById('kpiCandidates'), 28);
-    animateValue(document.getElementById('kpiDistricts'), 18);
-    animateValue(document.getElementById('kpiSales'), 28560);
-
-    // Demand chart – matches reference style
-    new Chart(document.getElementById('demandChart'), {
-      type: 'line',
-      data: {
-        labels: ['09-03','09-06','09-09','09-12','09-15','09-18','09-21','09-24','09-27','09-30','10-03','10-06','10-09','10-12'],
-        datasets: [
-          {
-            label: 'Observed sales (kg)',
-            data: [82000,74000,88000,76000,91000,79000,94000,82000,89000,85000,null,null,null,null],
-            borderColor: '#059669',
-            backgroundColor: 'rgba(5,150,105,.08)',
-            tension: 0.35,
-            fill: true,
-            pointRadius: 3,
-            pointBackgroundColor: '#059669'
-          },
-          {
-            label: 'Seasonal-naive baseline',
-            data: [null,null,null,null,null,null,null,null,null,85000,82000,91000,78000,88000],
-            borderColor: '#94a3b8',
-            borderDash: [6,4],
-            tension: 0.35,
-            pointRadius: 3,
-            pointBackgroundColor: '#94a3b8'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 11 } } },
-          tooltip: { backgroundColor: '#0f172a', titleFont: { size: 12 }, bodyFont: { size: 12 } }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
-          y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8' }, beginAtZero: true }
+    (() => {
+      const apiBase = (window.CNG_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
+      const note = document.getElementById('dashboardDataNote');
+      const status = document.getElementById('dashboardApiStatus');
+      let demandChart, districtChart;
+      const number = value => Number(value || 0).toLocaleString();
+      async function loadDashboard() {
+        try {
+          const response = await fetch(apiBase + '/api/dashboard/summary');
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.detail || ('HTTP ' + response.status));
+          document.getElementById('kpiStations').textContent = number(data.stations.demo_total);
+          document.getElementById('kpiCandidates').textContent = 'N/A';
+          document.getElementById('kpiDistricts').textContent = number(data.stations.district_count);
+          document.getElementById('kpiSales').textContent = number(data.sales.valid_record_count);
+          document.getElementById('kpiCapacity').textContent = number(data.stations.with_capacity) + '/' + number(data.stations.demo_total);
+          document.getElementById('kpiLocated').textContent = number(data.stations.with_valid_coordinates) + '/' + number(data.stations.demo_total);
+          document.getElementById('salesDateRange').textContent = (data.sales.date_min || 'n/a') + ' to ' + (data.sales.date_max || 'n/a');
+          note.textContent = data.data_note + ' Candidate-site ranking and forecast accuracy are not supplied by this endpoint.';
+          status.textContent = 'API connected · SYNTHETIC';
+          const daily = data.sales.daily_totals || [];
+          if (demandChart) demandChart.destroy();
+          demandChart = new Chart(document.getElementById('demandChart'), {
+            type: 'line',
+            data: { labels: daily.map(row => row.date), datasets: [{ label: 'Synthetic demo sales (kg/day)', data: daily.map(row => row.sales_kg), borderColor: '#059669', backgroundColor: 'rgba(5,150,105,.08)', tension: .25, fill: true, pointRadius: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+          });
+          const districts = Object.entries(data.district_counts || {});
+          if (districtChart) districtChart.destroy();
+          districtChart = new Chart(document.getElementById('districtChart'), {
+            type: 'bar',
+            data: { labels: districts.map(item => item[0]), datasets: [{ label: 'Demo stations', data: districts.map(item => item[1]), backgroundColor: '#059669', borderRadius: 4 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+          });
+        } catch (error) {
+          status.textContent = 'API unavailable';
+          note.textContent = 'Dashboard data could not be loaded (' + (error.message || error) + '). Metrics are left blank rather than replaced with hard-coded values. Start FastAPI and retry.';
+          ['kpiStations','kpiCandidates','kpiDistricts','kpiSales','kpiCapacity','kpiLocated'].forEach(id => document.getElementById(id).textContent = '—');
         }
       }
-    });
-
-    // District chart
-    const distLabels = Object.keys(window.DISTRICT_COUNTS);
-    const distValues = Object.values(window.DISTRICT_COUNTS);
-    new Chart(document.getElementById('districtChart'), {
-      type: 'bar',
-      data: {
-        labels: distLabels,
-        datasets: [{
-          data: distValues,
-          backgroundColor: '#059669',
-          borderRadius: 4,
-          barThickness: 14
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
-          y: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#475569' } }
-        }
-      }
-    });
+      loadDashboard();
+    })();
   </script>
 </body>
 </html>
