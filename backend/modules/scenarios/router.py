@@ -112,7 +112,7 @@ def list_saved_scenarios(limit: int = 20):
 
 @router.get("/{scenario_id}/report.csv")
 def export_scenario_report(scenario_id: str):
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         row = connection.execute("SELECT * FROM scenario_runs WHERE scenario_id = ?", (scenario_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Saved scenario not found")
