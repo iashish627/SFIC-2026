@@ -4,7 +4,7 @@ import os
 from datetime import date
 from pathlib import Path
 from fastapi import APIRouter
-from backend.modules.gis.router import load_stations as load_gis_stations
+from backend.modules.gis.router import DEFAULT_CSV, load_stations as load_gis_stations
 
 router = APIRouter(prefix="/api/health", tags=["Data Quality"])
 ROOT = Path(__file__).resolve().parents[3]
@@ -50,9 +50,9 @@ def data_health():
     last_date = date.fromisoformat(dates[-1]) if dates else None
     stale_days = (date.today() - last_date).days if last_date else None
     gis = load_gis_stations()
-    source_path = os.getenv("CNG_STATIONS_CSV") or "default GIS source selection"
+    source_path = str(Path(os.getenv("CNG_STATIONS_CSV", str(DEFAULT_CSV))).resolve())
     return {
-        "status": "healthy" if station_file["exists"] and sales_file["exists"] and capacity_file["exists"] else "incomplete",
+        "status": ("incomplete" if not (station_file["exists"] and sales_file["exists"] and capacity_file["exists"]) else ("degraded" if (stale_days is not None and stale_days > 7) or invalid_sales > 0 else "healthy")),
         "provenance": "synthetic_demo",
         "layers": {
             "stations": {"available": station_file["exists"], "rows": len(stations), "unique_station_ids": len(station_ids)},

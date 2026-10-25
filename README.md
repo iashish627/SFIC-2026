@@ -140,3 +140,8 @@ python -m pytest backend/tests -q
 ```
 
 For the static HTML prototype, serve the `frontend/` directory on port 5173 and run FastAPI on port 8000. The Vite/React source in `frontend/src/` is also built by CI; the current hackathon navigation pages are static HTML and call the same API directly.
+
+
+## Production database schema starter
+
+`backend/db/schema.sql` documents a PostgreSQL/PostGIS target schema for station master, sales, effective-dated capacity, supply constraints, source provenance, candidate sites, forecasts, model evaluations, scenario runs, station impacts, site rankings and audit logs. It is a migration starter only and is **not automatically applied** by the hackathon demo. The running demo stores saved scenarios in local SQLite; before production, replace that adapter with managed PostgreSQL, apply reviewed migrations, and add server-side authentication/authorization and audit enforcement.

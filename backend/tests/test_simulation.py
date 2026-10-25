@@ -71,3 +71,10 @@ def test_api_run_returns_three_scenarios():
 def test_api_rejects_bad_shock():
     r=client.post("/api/simulator/run",json={"horizon_days":5,"shock_days":[6]})
     assert r.status_code==422
+
+def test_capacity_utilisation_reflects_over_capacity_demand():
+    result = run_simulation([Station("OVER", 150, 100)], horizon_days=1)
+    baseline = result["scenarios"][0]
+    assert baseline["served_demand_kg"] == 100
+    assert baseline["unmet_demand_kg"] == 50
+    assert baseline["capacity_utilisation_pct"] == 150

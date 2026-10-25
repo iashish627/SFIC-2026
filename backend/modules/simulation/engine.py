@@ -70,7 +70,7 @@ def run_simulation(stations: Iterable[Station], horizon_days=30, demand_uplift_p
         return {"scenario":name,"horizon_days":horizon_days,"forecast_demand_kg":round(d,2),
                 "served_demand_kg":round(sv,2),"unmet_demand_kg":round(max(0,um),2),
                 "capacity_kg_over_horizon":round(cap,2),
-                "capacity_utilisation_pct":round(sv/cap*100 if cap else 0,2),
+                "capacity_utilisation_pct":round(d/cap*100 if cap else 0,2),
                 "estimated_cost":round(cost,2),"assumptions":note}
     scenarios=[
       item("A_NO_CHANGE",demand,served,capacity,unmet,0,"Current capacity; common baseline and shocks."),

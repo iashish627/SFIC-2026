@@ -88,6 +88,7 @@ def run_and_save_scenario(request: SimulationRequest):
              json.dumps(inputs, sort_keys=True), json.dumps(outputs, sort_keys=True), "scenario-engine-v1"),
         )
         connection.commit()
+        connection.commit()
     return {"scenario_id": scenario_id, "created_at": created_at, "status": "completed",
             "model_version": "scenario-engine-v1", "inputs": inputs, **outputs}
 
@@ -143,7 +144,7 @@ def export_scenario_report(scenario_id: str):
 
 @router.get("/{scenario_id}")
 def get_saved_scenario(scenario_id: str):
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         row = connection.execute("SELECT * FROM scenario_runs WHERE scenario_id = ?", (scenario_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Saved scenario not found")
