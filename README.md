@@ -115,7 +115,7 @@ The GIS backend selects the first available default file in this order:
 Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`; rows without coordinates are skipped. The 344-record source file is not currently included in this repository, so a local copy is needed to use it. Geocoding output is a candidate match and must be manually reviewed before calling a location verified. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
 
 ## Project Status
-**Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, baseline forecast, A/B/C demand-shock simulator, data provenance view and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite frontend build. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast accuracy has not been holdout-validated, and uploads do not yet persist data.
+**Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, station/network baseline forecasts, weekly outlook, chronological holdout evaluation, A/B/C demand-shock simulator, data-quality view, saved scenario history and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite build plus inline JavaScript syntax in static HTML pages. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast holdout metrics apply only to synthetic data, prediction bounds are illustrative, uploads do not yet persist data, and local SQLite scenario persistence must be replaced with managed PostgreSQL for production.
 
 ---
 Built as a student hackathon prototype for SFIC 2026.
@@ -128,8 +128,8 @@ Built as a student hackathon prototype for SFIC 2026.
 - `GET /api/gis/stations` — configured coordinate-valid station/outlet records.
 - `GET /api/gis/stations/{station_id}/nearby` — nearby records by straight-line distance.
 - `GET /api/gis/candidate-analysis?latitude=22.3&longitude=72.5&radii_km=5,10,20` — proximity diagnostics, not demand-based site ranking.
-- `GET /api/forecast/stations` and `GET /api/forecast/station/{station_id}?days=14&model=seasonal_naive` — synthetic-history forecast baselines.
-- `GET /api/simulator/demo-inputs` and `POST /api/simulator/run` — A/B/C expansion and demand-shock simulation.
+- `GET /api/forecast/stations` and `GET /api/forecast/station/{station_id}?days=14&model=seasonal_naive` — synthetic-history forecast baselines with illustrative bounds and model version.\n- `GET /api/forecast/network?days=30` — network forecast using a common cutoff date.\n- `GET /api/forecast/weekly/{station_id}?weeks=4` and `GET /api/forecast/evaluate/{station_id}?test_days=14` — weekly totals and chronological holdout metrics.
+- `GET /api/simulator/demo-inputs` and `POST /api/simulator/run` — stateless A/B/C expansion and demand-shock simulation.\n- `POST /api/scenarios/run`, `GET /api/scenarios`, `GET /api/scenarios/{scenario_id}` and `GET /api/scenarios/{scenario_id}/report.csv` — persist, retrieve and export saved scenario runs in a local SQLite demo store.\n- `GET /api/health/data` — data-layer availability, missingness and freshness diagnostics.
 
 ## Validation
 
