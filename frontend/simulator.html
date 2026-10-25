@@ -102,9 +102,9 @@
         byId('newSiteMetrics').innerHTML = '<dl style="display:grid;grid-template-columns:1fr auto;gap:.45rem;font-size:.82rem"><dt>Gross new-site sales</dt><dd>'+fmt(data.new_site_metrics.new_site_sales_kg)+' kg</dd><dt>Estimated diverted demand</dt><dd>'+fmt(data.new_site_metrics.estimated_diverted_demand_kg)+' kg</dd><dt>Net incremental demand</dt><dd>'+fmt(data.new_site_metrics.net_incremental_demand_kg)+' kg</dd></dl>';
         if (chart) chart.destroy();
         chart = new Chart(byId('simChart'), {type:'bar',data:{labels:['A — No change','B — Expand existing','C — Build new'],datasets:[{label:'Forecast demand (kg)',data:s.map(x=>x.forecast_demand_kg),backgroundColor:['#94a3b8','#f59e0b','#059669']},{label:'Unmet demand (kg)',data:s.map(x=>x.unmet_demand_kg),backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
-        byId('simWarning').textContent = data.warnings.join(' ');
+        byId('simWarning').textContent = (data.warnings || []).join(' ') + ' Scenario ID: ' + (data.scenario_id || 'not persisted') + '. Saved locally for reproducibility.';
         status.textContent = 'API connected';
-        message.textContent = 'Comparison completed for '+data.horizon_days+' days. Shock days: '+(data.shock_days.join(', ') || 'none')+'.';
+        message.textContent = 'Saved scenario '+(data.scenario_id||'—')+' · '+data.horizon_days+' days. Shock days: '+(data.shock_days.join(', ') || 'none')+'.';
       }
       async function run() {
         try {
@@ -114,7 +114,7 @@
           if (!Number.isInteger(horizon) || horizon<1 || horizon>365) throw new Error('Horizon must be an integer from 1 to 365.');
           if (shockDays.some(x=>!Number.isInteger(x)||x<1||x>horizon)) throw new Error('Each shock day must be an integer within the selected horizon.');
           const payload = {horizon_days:horizon,demand_uplift_pct:readNumber('simUplift'),shock_days:shockDays,expand_station_id:byId('simExpandStation').value,added_capacity_kg_day:readNumber('simAddedCapacity'),expansion_cost:readNumber('simExpansionCost'),new_site_potential_kg_day:readNumber('simNewPotential'),new_site_capacity_kg_day:readNumber('simNewCapacity'),diversion_pct:readNumber('simDiversion'),new_site_cost:readNumber('simNewCost')};
-          const data = await request('/api/simulator/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          const data = await request('/api/scenarios/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
           render(data);
         } catch(error) {
           status.textContent = 'API / input error';
