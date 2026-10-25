@@ -76,23 +76,23 @@ def weekly_forecast(station_id: str, weeks: int = Query(4, ge=1, le=5), model: s
     daily = []
     for step in range(1, weeks * 7 + 1):
         target = last_day + timedelta(days=step)
-        if model == "seasonal_naive" and len(values) >= 7:
-            # Use the value seven calendar days before the target when observed; otherwise use a recent mean.
-            predicted = history.get(target - timedelta(days=7))
-            if predicted is None:
-                predicted = sum(values[-min(7, len(values)):]) / min(7, len(values))
+        prior_week = history.get(target - timedelta(days=7))
+        if model == "seasonal_naive" and len(values) >= 7 and prior_week is not None:
+            predicted = prior_week
         else:
-            predicted = sum(values[-min(7, len(values)):]) / min(7, len(values))
+            window = values[-min(7, len(values)):]
+            predicted = sum(window) / len(window)
         daily.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2)})
     weekly = []
     for index in range(weeks):
         chunk = daily[index * 7:(index + 1) * 7]
         weekly.append({"week": index + 1, "start_date": chunk[0]["date"], "end_date": chunk[-1]["date"], "predicted_demand_kg": round(sum(row["predicted_demand_kg"] for row in chunk), 2)})
-    return {"station_id": station_id, "weeks": weeks, "model": model, "provenance": "synthetic_demo", "weekly_forecast": weekly, "warning": "Weekly totals are aggregates of a simple baseline over synthetic demo data; not operational forecasts."}
+    return {"station_id": station_id, "weeks": weeks, "model": model, "provenance": "synthetic_demo", "weekly_forecast": weekly, "warning": "Weekly totals aggregate a simple baseline over synthetic demo data; not operational forecasts."}
+
 
 @router.get("/evaluate/{station_id}")
 def evaluate_forecast(station_id: str, test_days: int = Query(14, ge=7, le=30), model: str = Query("seasonal_naive", pattern="^(seasonal_naive|moving_average)$")):
-    """Time-ordered holdout evaluation on synthetic history; never reports training fit as accuracy."""
+    """Chronological holdout evaluation; reports test-window metrics, not training fit."""
     history = _load_history().get(station_id, {})
     if not history:
         raise HTTPException(status_code=404, detail="No valid sales history for this station in the configured demo dataset.")
@@ -105,16 +105,47 @@ def evaluate_forecast(station_id: str, test_days: int = Query(14, ge=7, le=30), 
     train_values = [train[day] for day in train_dates]
     actual, predicted = [], []
     for target in test_dates:
-        if model == "seasonal_naive" and target - timedelta(days=7) in train:
-            estimate = train[target - timedelta(days=7)]
+        prior_week = train.get(target - timedelta(days=7))
+        if model == "seasonal_naive" and prior_week is not None:
+            estimate = prior_week
         else:
-            estimate = sum(train_values[-min(7, len(train_values)):]) / min(7, len(train_values))
+            window = train_values[-min(7, len(train_values)):]
+            estimate = sum(window) / len(window)
         actual.append(history[target])
         predicted.append(max(0.0, estimate))
-    mae = sum(abs(a-p) for a,p in zip(actual,predicted)) / len(actual)
+    errors = [abs(a-p) for a, p in zip(actual, predicted)]
+    mae = sum(errors) / len(errors)
     actual_total = sum(actual)
-    wape = sum(abs(a-p) for a,p in zip(actual,predicted)) / actual_total * 100 if actual_total else None
-    return {"station_id": station_id, "model": model, "split_type": "chronological_holdout", "train_days": len(train_dates), "test_days": len(test_dates), "train_end": train_dates[-1].isoformat(), "test_start": test_dates[0].isoformat(), "test_end": test_dates[-1].isoformat(), "mae_kg_day": round(mae, 2), "wape_pct": round(wape, 2) if wape is not None else None, "provenance": "synthetic_demo", "warning": "Metrics evaluate only this synthetic demo series. They do not establish real-world Gujarat Gas forecast accuracy."}
+    wape = sum(errors) / actual_total * 100 if actual_total else None
+    rmse = (sum((a-p)**2 for a, p in zip(actual, predicted)) / len(actual)) ** 0.5
+    return {"station_id": station_id, "model": model, "model_version": "baseline-v1", "split_type": "chronological_holdout", "train_days": len(train_dates), "test_days": len(test_dates), "train_end": train_dates[-1].isoformat(), "test_start": test_dates[0].isoformat(), "test_end": test_dates[-1].isoformat(), "mae_kg_day": round(mae, 2), "rmse_kg_day": round(rmse, 2), "wape_pct": round(wape, 2) if wape is not None else None, "provenance": "synthetic_demo", "warning": "Metrics evaluate only this synthetic demo series. They do not establish real-world Gujarat Gas forecast accuracy."}
+
+
+@router.get("/network")
+def network_forecast(days: int = Query(30, ge=1, le=30), model: str = Query("seasonal_naive", pattern="^(seasonal_naive|moving_average)$")):
+    """Aggregate per-station forecasts; stations without valid history are counted as missing."""
+    history_by_station = _load_history()
+    usable = {station_id: history for station_id, history in history_by_station.items() if history}
+    if not usable:
+        raise HTTPException(status_code=404, detail="No stations have valid sales history.")
+    network_cutoff = max(max(history) for history in usable.values())
+    daily_totals = defaultdict(float)
+    for history in usable.values():
+        observed_days = sorted(history)
+        values = [history[d] for d in observed_days]
+        for step in range(1, days + 1):
+            target = network_cutoff + timedelta(days=step)
+            prior_week = history.get(target - timedelta(days=7))
+            if model == "seasonal_naive" and len(values) >= 7 and prior_week is not None:
+                predicted = prior_week
+            else:
+                window = values[-min(7, len(values)):]
+                predicted = sum(window) / len(window)
+            daily_totals[target.isoformat()] += max(0.0, predicted)
+    included = len(usable)
+    rows = [{"date": day, "predicted_demand_kg": round(value, 2)} for day, value in sorted(daily_totals.items())]
+    return {"model": model, "model_version": "baseline-v1", "data_cutoff": network_cutoff.isoformat(), "days": days, "stations_included": included, "stations_without_history": max(0, len(_load_station_names()) - included), "provenance": "synthetic_demo", "forecast": rows, "warning": "Network totals use one common forecast date range and aggregate only stations with valid synthetic demo history; this is not an operational network forecast."}
+
 
 @router.get("/station/{station_id}")
 def forecast_station(station_id: str, days: int = Query(14, ge=1, le=30), model: str = Query("seasonal_naive", pattern="^(seasonal_naive|moving_average)$")):
@@ -145,4 +176,24 @@ def forecast_station(station_id: str, days: int = Query(14, ge=1, le=30), model:
             method = "moving_average_7d" if model == "moving_average" else "moving_average_fallback"
             row_method = method
         rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2), "method": row_method})
-    return {"station_id": station_id, "days": days, "model": model, "method": method, "provenance": "synthetic_demo", "history": {"valid_days": len(values), "start": observed_days[0].isoformat(), "end": observed_days[-1].isoformat()}, "forecast": rows, "warning": "Baseline demonstration only. Synthetic data; no holdout validation or operational accuracy claim."}
+    # Estimate a transparent interval radius from one-step baseline residuals.
+    residuals = []
+    for index in range(1, len(observed_days)):
+        target_day = observed_days[index]
+        prior_week = history.get(target_day - timedelta(days=7))
+        if model == "seasonal_naive" and prior_week is not None:
+            estimate = prior_week
+        else:
+            prior_values = [history[d] for d in observed_days[:index][-7:]]
+            estimate = sum(prior_values) / len(prior_values)
+        residuals.append(abs(history[target_day] - estimate))
+    interval_method = "1.96x historical one-step MAE" if residuals else "fallback 20% recent mean; insufficient residual history"
+    if residuals:
+        radius = 1.96 * (sum(residuals) / len(residuals))
+    else:
+        radius = 0.20 * (sum(values[-min(7, len(values)):]) / min(7, len(values)))
+    for row in rows:
+        yhat = row["predicted_demand_kg"]
+        row["lower_bound_kg"] = round(max(0.0, yhat - radius), 2)
+        row["upper_bound_kg"] = round(yhat + radius, 2)
+    return {"station_id": station_id, "days": days, "model": model, "model_version": "baseline-v1", "method": method, "interval_method": interval_method, "provenance": "synthetic_demo", "history": {"valid_days": len(values), "start": observed_days[0].isoformat(), "end": observed_days[-1].isoformat()}, "forecast": rows, "warning": "Baseline demonstration only. Bounds are illustrative residual-based intervals, not calibrated confidence intervals. Synthetic data; no operational accuracy claim."}
