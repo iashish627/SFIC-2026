@@ -16,6 +16,7 @@ GUJARAT_GAS_344_CSV = REPO_ROOT / "member-3-forecasting" / "data" / "gujarat_gas
 PUBLIC_CSV = REPO_ROOT / "data" / "processed" / "stations.csv"
 DEFAULT_CSV = (
     GUJARAT_GAS_GEOCODED_CSV if GUJARAT_GAS_GEOCODED_CSV.exists()
+    else MEMBER_GUJARAT_GAS_GEOCODED_CSV if MEMBER_GUJARAT_GAS_GEOCODED_CSV.exists()
     else GUJARAT_GAS_344_CSV if GUJARAT_GAS_344_CSV.exists()
     else PUBLIC_CSV
 )
