@@ -35,29 +35,66 @@
     </header>
 
     <div style="padding:1.25rem 1.5rem">
-      <p class="desc" style="margin-bottom:1rem">Exports are generated from the same APIs used by the dashboard. CSV files contain returned API data and explicit provenance/assumptions; no fabricated PDF or Excel reports are generated.</p>
+      <p class="desc" style="margin-bottom:1rem">Exports are generated from live API responses. CSV files include returned data, provenance and assumptions; no fabricated PDF or Excel reports are generated.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('summary')"><h3>Dashboard Data Summary</h3><p class="desc">Current synthetic KPI counts and daily sales series.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('stations')"><h3>GIS Station Master</h3><p class="desc">Configured coordinate-valid station/outlet records with source and verification fields.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('forecast')"><h3>14-Day Station Forecast</h3><p class="desc">Baseline forecast for the first station with valid synthetic history.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
-        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('scenario')"><h3>A/B/C Scenario Comparison</h3><p class="desc">Default synthetic-input scenario output, including assumptions and warnings.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('summary')"><h3>Dashboard Data Summary</h3><p class="desc">Synthetic KPI counts and daily sales series.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('stations')"><h3>GIS Station Master</h3><p class="desc">Configured coordinate-valid records and source/verification fields.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('forecast')"><h3>14-Day Station Forecast</h3><p class="desc">Baseline forecast with illustrative bounds and model version.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('scenario')"><h3>A/B/C Scenario Comparison</h3><p class="desc">Runs and saves a scenario with the current demo assumptions.</p><strong style="color:#059669;font-size:.85rem">Run & export CSV →</strong></button>
       </div>
-      <section class="card"><h3>Export status</h3><p id="reportStatus" class="desc" role="status">Exports query live local APIs when clicked. Start FastAPI on port 8000.</p><p class="desc">Limitations: no verified operational sales feed, no validated forecast accuracy, no demand-based candidate ranking, and no PDF/XLSX reporting engine are currently connected.</p></section>
+      <section class="card" style="margin-bottom:1rem"><h3>Saved scenario runs</h3><p class="desc">Completed simulator runs are stored in the local demo database and can be retrieved later.</p><div id="savedScenarioList" style="overflow:auto">Loading saved scenarios…</div></section>
+      <section class="card"><h3>Export status</h3><p id="reportStatus" class="desc" role="status">Exports query local APIs when clicked. Start FastAPI on port 8000.</p><p class="desc">Limitations: data is synthetic/provisional, forecast intervals are illustrative, and candidate-site analysis is proximity-only. Local SQLite persistence is for the single-instance demo, not production deployment.</p></section>
     </div>
   </div>
   <script src="js/app.js"></script>
   <script>
-    function downloadReport(type) {
-      const names = { risk:'Network_Risk_Summary', sites:'Site_Ranking_Pack', scenario:'Scenario_Comparison', master:'Station_Master_344' };
-      // Generate a simple CSV download as demo
-      let content = 'Report Type,Generated,Note\n';
-      content += `${names[type]},${new Date().toISOString()},Synthetic demo export from CNG Network Intelligence\n`;
-      const blob = new Blob([content], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = names[type] + '_demo.csv';
-      a.click();
+    const REPORT_API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');
+    const reportStatus=document.getElementById('reportStatus');
+    async function reportGet(path,options){const r=await fetch(REPORT_API+path,options);const d=await r.json();if(!r.ok)throw new Error(d.detail||'HTTP '+r.status);return d;}
+    function csvCell(v){if(v===null||v===undefined)return '""';const s=typeof v==='object'?JSON.stringify(v):String(v);return '"'+s.replace(/"/g,'""')+'"';}
+    function downloadCsv(filename,rows){
+      if(!rows.length)throw new Error('No data returned for this export.');
+      const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))];
+      const csv=[keys.map(csvCell).join(','),...rows.map(row=>keys.map(k=>csvCell(row[k])).join(','))].join('\r\n');
+      const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+      const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
+    async function loadSavedScenarios(){
+      const host=document.getElementById('savedScenarioList');
+      try{
+        const data=await reportGet('/api/scenarios?limit=20');
+        if(!data.scenarios.length){host.textContent='No saved scenarios yet. Run the What-if Simulator first.';return;}
+        host.innerHTML='<table class="data" style="width:100%;font-size:.82rem"><thead><tr><th>Scenario ID</th><th>Created</th><th>Horizon</th><th>Status</th><th>Report</th></tr></thead><tbody>'+data.scenarios.map(s=>'<tr><td style="font-family:ui-monospace">'+s.scenario_id+'</td><td>'+s.created_at+'</td><td>'+s.horizon_days+' days</td><td>'+s.status+'</td><td><a href="'+REPORT_API+'/api/scenarios/'+encodeURIComponent(s.scenario_id)+'/report.csv">Download CSV</a></td></tr>').join('')+'</tbody></table><p class="desc">'+data.warning+'</p>';
+      }catch(e){host.textContent='Saved scenarios unavailable: '+e.message;}
+    }
+    async function downloadReport(type){
+      try{
+        reportStatus.textContent='Fetching live API data…';
+        if(type==='summary'){
+          const d=await reportGet('/api/dashboard/summary');
+          const rows=[{section:'metadata',provenance:d.provenance,data_note:d.data_note,station_count:d.stations.demo_total,capacity_rows_matched:d.stations.with_capacity,located_demo_stations:d.stations.with_valid_coordinates,district_count:d.stations.district_count,valid_sales_records:d.sales.valid_record_count,sales_date_min:d.sales.date_min,sales_date_max:d.sales.date_max},...(d.sales.daily_totals||[]).map(x=>({section:'daily_sales',...x}))];
+          downloadCsv('cng_dashboard_summary.csv',rows);
+        }else if(type==='stations'){
+          const d=await reportGet('/api/gis/stations');
+          downloadCsv('cng_gis_station_master.csv',(d.items||[]).map(x=>({...x,provenance_note:d.data_note})));
+        }else if(type==='forecast'){
+          const s=await reportGet('/api/forecast/stations');
+          const station=s.stations.find(x=>x.valid_history_days>0);
+          if(!station)throw new Error('No station has valid sales history in the synthetic demo dataset.');
+          const d=await reportGet('/api/forecast/station/'+encodeURIComponent(station.station_id)+'?days=14&model=seasonal_naive');
+          downloadCsv('cng_14_day_forecast_'+station.station_id+'.csv',[{section:'metadata',station_id:d.station_id,model:d.model,model_version:d.model_version,method:d.method,interval_method:d.interval_method,provenance:d.provenance,history:d.history,warning:d.warning},...d.forecast.map(x=>({section:'forecast',station_id:d.station_id,...x}))]);
+        }else if(type==='scenario'){
+          const input=await reportGet('/api/simulator/demo-inputs');
+          const stations=input.stations||[];
+          if(!stations.length)throw new Error('No simulator baseline inputs are available.');
+          const d=await reportGet('/api/scenarios/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({horizon_days:30,demand_uplift_pct:25,shock_days:[10,11,12],expand_station_id:stations[0].station_id,added_capacity_kg_day:400,expansion_cost:5000000,new_site_potential_kg_day:900,new_site_capacity_kg_day:1000,diversion_pct:20,new_site_cost:12000000})});
+          downloadCsv('cng_abc_scenario_'+d.scenario_id+'.csv',[{section:'metadata',scenario_id:d.scenario_id,created_at:d.created_at,model_version:d.model_version,provenance:d.provenance,horizon_days:d.horizon_days,shock_days:d.shock_days,demand_uplift_pct_on_shock_days:d.demand_uplift_pct_on_shock_days,warning:(d.warnings||[]).join(' | ')},...(d.scenarios||[]).map(x=>({section:'scenario',...x})),{section:'new_site_metrics',...d.new_site_metrics}]);
+          await loadSavedScenarios();
+        }
+        reportStatus.textContent='Export created from API data. Review provenance and assumptions before using it for decisions.';
+      }catch(e){reportStatus.textContent='Export failed: '+e.message+'. Start FastAPI and check the relevant endpoint.';}
+    }
+    loadSavedScenarios();
   </script>
 </body>
 </html>
