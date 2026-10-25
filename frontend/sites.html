@@ -63,7 +63,7 @@
         const radii=document.getElementById('candidateRadii').value.trim();
         const msg=document.getElementById('candidateMessage'),status=document.getElementById('siteApiStatus');
         if(!Number.isFinite(lat)||lat < -90||lat>90||!Number.isFinite(lon)||lon < -180||lon>180){msg.textContent='Enter valid latitude and longitude.';return;}
-        if(!/^\s*\d+(\.\d+)?(\s*,\s*\d+(\.\d+)?)*\s*$/.test(radii)){msg.textContent='Radius must be comma-separated positive numbers.';return;}
+        if(!/^\s*\d+(\.\d+)?(\s*,\s*\d+(\.\d+)?)*\s*$/.test(radii)||radii.split(',').some(x=>!(Number(x.trim())>0&&Number(x.trim())<=100))){msg.textContent='Radius values must be positive numbers up to 100 km.';return;}
         try{
           msg.textContent='Analyzing…';
           const response=await fetch(API+'/api/gis/candidate-analysis?latitude='+encodeURIComponent(lat)+'&longitude='+encodeURIComponent(lon)+'&radii_km='+encodeURIComponent(radii));
