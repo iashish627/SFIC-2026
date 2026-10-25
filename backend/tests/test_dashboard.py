@@ -9,9 +9,9 @@ def test_dashboard_summary_is_explicitly_synthetic():
     body = response.json()
     assert body["provenance"] == "synthetic_demo"
     assert "not Gujarat Gas operational data" in body["data_note"]
-    assert body["stations"]["demo_total"] == 8
-    assert body["stations"]["with_capacity"] == 8
-    assert body["stations"]["with_valid_coordinates"] == 8
+    assert body["stations"]["demo_total"] == 344
+    assert body["stations"]["with_capacity"] == 344
+    assert body["stations"]["with_valid_coordinates"] == 344
     assert body["sales"]["valid_record_count"] > 0
     assert body["sales"]["daily_totals"]
     assert body["district_counts"]
