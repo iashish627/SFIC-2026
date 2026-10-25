@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.modules.gis.router import router as gis_router
+from backend.modules.dashboard.router import router as dashboard_router
 from backend.modules.simulation.router import router as simulator_router
 
 app = FastAPI(title="CNG Network Intelligence API", version="0.3.0")
@@ -13,6 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(gis_router)
+app.include_router(dashboard_router)
 app.include_router(simulator_router)
 
 @app.get("/health")
