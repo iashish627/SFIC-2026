@@ -77,11 +77,13 @@ SFIC-2026/
 
 Metrics are only as reliable as their input data and assumptions.
 
-## Network Map / GIS Feature
+## Station Locator and Network Map / GIS Feature
 
-The Network Map is a Leaflet-based view of coordinate-backed CNG outlet records returned by the GIS API.
+The Network Map is a Leaflet-based station-locator experience inspired by public CNG locator pages: district and locality filters, station search/cards, map selection, and proximity analysis.
 
-- Displays only records with valid latitude/longitude that fall inside the map's approximate Gujarat display outline; records without usable coordinates are not plotted.
+- Locator filters support district, city/locality, and free-text station/address search. Station cards can focus the map on a selected result.
+- The 5 km, 10 km, and 20 km radius controls support preliminary proximity screening. Distances are straight-line distances, not road distances.
+- Only records with valid latitude/longitude inside the approximate Gujarat display outline are plotted; records without usable coordinates are not plotted.
 - Groups nearby markers into clusters. Marker colours distinguish verified operator records from provisional candidates.
 - Station popups show available station identifiers, district, coordinates, source and verification status.
 - Optional filters include risk stations and verified operator stations. Risk filtering depends on utilization fields being present in the data.
@@ -112,7 +114,7 @@ The GIS backend selects the first available default file in this order:
 2. `member-3-forecasting/data/gujarat_gas_directory_344_records.csv`
 3. `data/processed/stations.csv` (public outlet mapping; provisional)
 
-Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`; rows without coordinates are skipped. The 344-record source file is not currently included in this repository, so a local copy is needed to use it. Geocoding output is a candidate match and must be manually reviewed before calling a location verified. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
+Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`; rows without coordinates are skipped. The 344-record source file must be placed at one of the first two paths above to make the locator use that directory instead of the broader public-outlet fallback. Coordinates inferred from district/locality are approximate and must not be presented as precise station locations. Sales and capacity estimates are synthetic demo values, not Gujarat Gas operational records. Geocoding output is a candidate match and must be manually reviewed before calling a location verified. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
 
 ## Project Status
 **Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, baseline forecast, A/B/C demand-shock simulator, data provenance view and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite frontend build. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast accuracy has not been holdout-validated, and uploads do not yet persist data.
