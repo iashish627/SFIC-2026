@@ -35,54 +35,31 @@
     </header>
 
     <div style="padding:1.25rem 1.5rem">
-      <div class="banner" style="margin-bottom:1.25rem">
-        Currently running on <strong>SYNTHETIC DEMO</strong> data. The attached Gujarat stations file (344 records) can be used as the station master after coordinate enrichment.
+      <div class="banner" style="margin-bottom:1.25rem"><strong>Data provenance first.</strong> The current repository contains synthetic sales/capacity demo data and a public outlet GIS layer. No live Gujarat Gas operational sales feed is connected.</div>
+      <div class="grid-2" style="margin-bottom:1rem">
+        <section class="card"><h3>Dashboard demo layer</h3><p class="desc">Counts are read from the same API used by the dashboard.</p><div id="dataSummary" class="desc">Loading dashboard summary…</div></section>
+        <section class="card"><h3>GIS station layer</h3><p class="desc">Only coordinate-valid records exposed by the GIS API are counted.</p><div id="gisSummary" class="desc">Loading GIS records…</div></section>
       </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h3>Upload datasets</h3>
-          <p class="desc">Replace synthetic layers with real operational data</p>
-          <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>
-              <label style="font-size:.8rem;font-weight:600;color:#475569;display:block;margin-bottom:.35rem">Stations master (CSV / XLSX)</label>
-              <input type="file" accept=".csv,.xlsx" style="font-size:.8rem" />
-            </div>
-            <div>
-              <label style="font-size:.8rem;font-weight:600;color:#475569;display:block;margin-bottom:.35rem">Daily sales (station_id, date, kg)</label>
-              <input type="file" accept=".csv" style="font-size:.8rem" />
-            </div>
-            <div>
-              <label style="font-size:.8rem;font-weight:600;color:#475569;display:block;margin-bottom:.35rem">Capacity & RTO growth rates</label>
-              <input type="file" accept=".csv" style="font-size:.8rem" />
-            </div>
-            <button class="btn btn-primary" style="align-self:flex-start" onclick="alert('Static prototype — file parsing is simulated. In production this would update the digital twin.')">Process uploads</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Currently loaded</h3>
-          <p class="desc">Status of each data layer</p>
-          <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.875rem">
-            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-              <span>Stations</span><span style="color:#059669;font-weight:600">344 (Gujarat directory)</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-              <span>Sales records</span><span style="color:#d97706;font-weight:600">Synthetic 28,560</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-              <span>Capacity profiles</span><span style="color:#d97706;font-weight:600">Synthetic 312</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-              <span>RTO growth rates</span><span style="color:#d97706;font-weight:600">Synthetic district-level</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.5rem 0">
-              <span>Coordinates verified</span><span style="color:#dc2626;font-weight:600">0 / 344</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <section class="card" style="margin-bottom:1rem"><h3>Data source and quality notes</h3><div id="dataQualityNotes" class="desc">Loading provenance…</div></section>
+      <section class="card"><h3>Import capability</h3><p class="desc">CSV/XLSX upload controls are intentionally not presented as working: there is currently no authenticated ingestion endpoint, schema validation workflow, or persistence layer for uploads. To replace demo inputs, prepare CSVs using the templates in <code>data/raw/</code>, configure the GIS source with <code>CNG_STATIONS_CSV</code>, and integrate operational sales/capacity data through a validated backend ingestion path.</p><p class="desc">No file is uploaded or processed by this page. This avoids suggesting that an upload changes the digital twin when it does not.</p></section>
     </div>
   </div>
   <script src="js/app.js"></script>
+  <script>
+    (() => {
+      const API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');
+      const fmt=n=>Number(n||0).toLocaleString();
+      async function get(path){const r=await fetch(API+path);const d=await r.json();if(!r.ok)throw new Error(d.detail||'HTTP '+r.status);return d;}
+      async function init(){
+        try{
+          const [d,g]=await Promise.all([get('/api/dashboard/summary'),get('/api/gis/stations')]);
+          document.getElementById('dataSummary').innerHTML='<p><strong>Demo stations:</strong> '+fmt(d.stations.demo_total)+'</p><p><strong>Capacity rows matched:</strong> '+fmt(d.stations.with_capacity)+'</p><p><strong>Sales records valid:</strong> '+fmt(d.sales.valid_record_count)+'</p><p><strong>Sales date range:</strong> '+(d.sales.date_min||'—')+' to '+(d.sales.date_max||'—')+'</p><p><strong>District count:</strong> '+fmt(d.stations.district_count)+'</p>';
+          document.getElementById('gisSummary').innerHTML='<p><strong>Coordinate-valid records:</strong> '+fmt(g.count)+'</p><p><strong>Records flagged verified:</strong> '+fmt((g.items||[]).filter(x=>x.verified_gujarat_gas_station===true).length)+'</p><p><strong>Provisional/unverified:</strong> '+fmt((g.items||[]).filter(x=>x.verified_gujarat_gas_station!==true).length)+'</p>';
+          document.getElementById('dataQualityNotes').textContent=d.data_note+' '+g.data_note+' GIS record counts can differ from the synthetic demo station count because they come from separate sources.';
+        }catch(e){document.getElementById('dataSummary').textContent='Could not load dashboard data: '+e.message;document.getElementById('gisSummary').textContent='Could not load GIS data: '+e.message;document.getElementById('dataQualityNotes').textContent='Start FastAPI and retry. No fallback numbers are invented.';}
+      }
+      init();
+    })();
+  </script>
 </body>
 </html>

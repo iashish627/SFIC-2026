@@ -35,23 +35,24 @@ def _load_station_names():
     return names
 
 def _forecast(history, days):
+    """Shared calendar-aligned seasonal-naive helper; gaps use recent-mean fallback."""
     observed_days = sorted(history)
     values = [history[d] for d in observed_days]
     if not values:
         return {"method": "unavailable", "rows": [], "warning": "No valid historical sales are available for this station."}
-    # Weekly seasonal-naive when the complete preceding week is available; otherwise a recent mean.
     rows = []
     last_day = observed_days[-1]
     for step in range(1, days + 1):
         target = last_day + timedelta(days=step)
-        if len(values) >= 7:
-            predicted = values[(len(values) - 7 + ((step - 1) % 7)) % len(values)]
-            method = "seasonal_naive_7d"
+        prior_week = history.get(target - timedelta(days=7))
+        if prior_week is not None and len(values) >= 7:
+            predicted, row_method = prior_week, "seasonal_naive_7d"
         else:
-            predicted = sum(values[-min(7, len(values)):]) / min(7, len(values))
-            method = "moving_average_fallback"
-        rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2)})
-    return {"method": method, "rows": rows, "warning": "Baseline only. Data is synthetic and forecast accuracy has not been validated against a holdout period."}
+            window = values[-min(7, len(values)):]
+            predicted = sum(window) / len(window)
+            row_method = "moving_average_fallback_missing_weekday"
+        rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2), "method": row_method})
+    return {"method": "seasonal_naive_7d", "rows": rows, "warning": "Baseline only. Data is synthetic and forecast accuracy has not been validated against a holdout period."}
 
 @router.get("/stations")
 def list_stations():
@@ -75,11 +76,21 @@ def forecast_station(station_id: str, days: int = Query(14, ge=1, le=30), model:
     for step in range(1, days + 1):
         target = last_day + timedelta(days=step)
         if model == "seasonal_naive" and len(values) >= 7:
-            predicted = values[(len(values) - 7 + ((step - 1) % 7)) % len(values)]
+            # Use the same calendar weekday from exactly seven days earlier.
+            # Missing history is handled explicitly instead of shifting across gaps.
+            seasonal_value = history.get(target - timedelta(days=7))
+            if seasonal_value is not None:
+                predicted = seasonal_value
+                row_method = "seasonal_naive_7d"
+            else:
+                window = values[-min(7, len(values)):]
+                predicted = sum(window) / len(window)
+                row_method = "moving_average_fallback_missing_weekday"
             method = "seasonal_naive_7d"
         else:
             window = values[-min(7, len(values)):]
             predicted = sum(window) / len(window)
             method = "moving_average_7d" if model == "moving_average" else "moving_average_fallback"
-        rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2)})
+            row_method = method
+        rows.append({"date": target.isoformat(), "predicted_demand_kg": round(max(0.0, predicted), 2), "method": row_method})
     return {"station_id": station_id, "days": days, "model": model, "method": method, "provenance": "synthetic_demo", "history": {"valid_days": len(values), "start": observed_days[0].isoformat(), "end": observed_days[-1].isoformat()}, "forecast": rows, "warning": "Baseline demonstration only. Synthetic data; no holdout validation or operational accuracy claim."}

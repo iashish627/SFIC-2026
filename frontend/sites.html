@@ -28,55 +28,56 @@
       <div style="display:flex;align-items:center;gap:.75rem">
         <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
         <div>
-          <h1 style="font-size:1.15rem;font-weight:700">Candidate Site Ranking</h1>
-          <p style="font-size:.75rem;color:#64748b">Demand gap · RTO growth · coverage deficit · distance to mother</p>
+          <h1 style="font-size:1.15rem;font-weight:700">Candidate Site Proximity Analysis</h1>
+          <p style="font-size:.75rem;color:#64748b">Coordinate-based proximity · source-labelled records · no invented rankings</p>
         </div>
       </div>
-      <span class="badge">28 CANDIDATES</span>
+      <span class="badge" id="siteApiStatus">GIS API</span>
     </header>
 
     <div style="padding:1.25rem 1.5rem">
-      <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
-        <div style="overflow-x:auto">
-          <table class="data">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Candidate site</th>
-                <th>District</th>
-                <th>Demand gap</th>
-                <th>RTO growth</th>
-                <th>Nearest mother</th>
-                <th>Score</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><strong>1</strong></td><td>Sanand GIDC Extension</td><td>Ahmedabad</td><td class="risk-high">1,840 kg/d</td><td>+14%</td><td>8.2 km</td><td><strong style="color:#059669">92</strong></td><td><span class="tag tag-green">High priority</span></td></tr>
-              <tr><td><strong>2</strong></td><td>Kamrej / Kadodara Node</td><td>Surat</td><td class="risk-high">1,620 kg/d</td><td>+11%</td><td>6.5 km</td><td><strong style="color:#059669">89</strong></td><td><span class="tag tag-green">High priority</span></td></tr>
-              <tr><td><strong>3</strong></td><td>Halol Industrial Corridor</td><td>Panchmahal</td><td class="risk-med">1,150 kg/d</td><td>+9%</td><td>4.1 km</td><td><strong style="color:#059669">84</strong></td><td><span class="tag tag-amber">Medium</span></td></tr>
-              <tr><td><strong>4</strong></td><td>Vapi GIDC Phase-2</td><td>Valsad</td><td class="risk-med">980 kg/d</td><td>+12%</td><td>3.8 km</td><td><strong style="color:#059669">81</strong></td><td><span class="tag tag-amber">Medium</span></td></tr>
-              <tr><td>5</td><td>Dahod Bypass NH-47</td><td>Dahod</td><td class="risk-med">870 kg/d</td><td>+7%</td><td>5.2 km</td><td><strong>76</strong></td><td><span class="tag">Watch</span></td></tr>
-              <tr><td>6</td><td>Nadiad Ring Road</td><td>Kheda</td><td>720 kg/d</td><td>+8%</td><td>7.0 km</td><td><strong>73</strong></td><td><span class="tag">Watch</span></td></tr>
-              <tr><td>7</td><td>Ankleshwar Valia Road</td><td>Bharuch</td><td>690 kg/d</td><td>+6%</td><td>4.9 km</td><td><strong>71</strong></td><td><span class="tag">Watch</span></td></tr>
-              <tr><td>8</td><td>Gift City Edge</td><td>Gandhinagar</td><td>640 kg/d</td><td>+15%</td><td>9.1 km</td><td><strong>70</strong></td><td><span class="tag">Watch</span></td></tr>
-            </tbody>
-          </table>
+      <section class="card" style="margin-bottom:1rem">
+        <h2 style="font-size:1rem;font-weight:700">Evaluate a proposed site</h2>
+        <p class="desc">Enter coordinates to find nearby records in the configured GIS station dataset. This is straight-line proximity only, not a demand-based commercial ranking.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-top:1rem">
+          <label style="font-size:.8rem">Latitude<input id="candidateLat" type="number" step="any" min="-90" max="90" value="22.3039" style="display:block;width:100%;padding:.6rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
+          <label style="font-size:.8rem">Longitude<input id="candidateLon" type="number" step="any" min="-180" max="180" value="72.5850" style="display:block;width:100%;padding:.6rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
+          <label style="font-size:.8rem">Radius bands (km)<input id="candidateRadii" value="5,10,20" style="display:block;width:100%;padding:.6rem;margin-top:.35rem;border:1px solid #cbd5e1;border-radius:8px"></label>
         </div>
-      </div>
-
-      <div class="card">
-        <h3>Scoring model</h3>
-        <p class="desc">Transparent multi-criteria ranking used for expansion prioritization</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;font-size:.85rem">
-          <div><div style="font-weight:600;color:#059669">40%</div> Demand gap percentile</div>
-          <div><div style="font-weight:600;color:#059669">25%</div> RTO vehicle growth</div>
-          <div><div style="font-weight:600;color:#059669">20%</div> Coverage deficit</div>
-          <div><div style="font-weight:600;color:#059669">15%</div> Inverse distance to mother</div>
-        </div>
-      </div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:1rem"><button id="analyzeCandidate" class="btn btn-primary" type="button">Analyze proximity</button><span id="candidateMessage" class="desc" role="status">Ready to query GIS API.</span></div>
+      </section>
+      <section class="card" style="padding:0;overflow:hidden;margin-bottom:1rem">
+        <div style="padding:1rem"><h3>Nearest station/outlet records</h3><p id="candidateNote" class="desc">Results will show distances and available source metadata.</p></div>
+        <div style="overflow-x:auto"><table class="data"><thead><tr><th>Station / outlet ID</th><th>Name</th><th>Distance (km)</th><th>District</th><th>Verification</th></tr></thead><tbody id="candidateRows"><tr><td colspan="5" style="padding:1.5rem;text-align:center">Run proximity analysis to view results.</td></tr></tbody></table></div>
+      </section>
+      <p class="desc">Important: public-directory entries may not be currently operating CNG stations or Gujarat Gas-supplied sites. Proximity does not establish customer catchment, demand gap, cannibalization, road travel time, site feasibility, or financial viability. The dashboard will not display a fabricated score.</p>
     </div>
   </div>
   <script src="js/app.js"></script>
+  <script>
+    (() => {
+      const API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');
+      const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      async function analyze(){
+        const lat=Number(document.getElementById('candidateLat').value),lon=Number(document.getElementById('candidateLon').value);
+        const radii=document.getElementById('candidateRadii').value.trim();
+        const msg=document.getElementById('candidateMessage'),status=document.getElementById('siteApiStatus');
+        if(!Number.isFinite(lat)||lat < -90||lat>90||!Number.isFinite(lon)||lon < -180||lon>180){msg.textContent='Enter valid latitude and longitude.';return;}
+        if(!/^\s*\d+(\.\d+)?(\s*,\s*\d+(\.\d+)?)*\s*$/.test(radii)){msg.textContent='Radius must be comma-separated positive numbers.';return;}
+        try{
+          msg.textContent='Analyzing…';
+          const response=await fetch(API+'/api/gis/candidate-analysis?latitude='+encodeURIComponent(lat)+'&longitude='+encodeURIComponent(lon)+'&radii_km='+encodeURIComponent(radii));
+          const data=await response.json();if(!response.ok)throw new Error(data.detail||'HTTP '+response.status);
+          const items=data.nearby||data.nearest_stations||data.nearby_stations||data.items||[];
+          const normalized=Array.isArray(items)?items:[];
+          document.getElementById('candidateRows').innerHTML=normalized.map(s=>'<tr><td>'+esc(s.station_id||s.id||'—')+'</td><td>'+esc(s.station_name||s.name||'—')+'</td><td>'+esc(Number(s.distance_km??s.distance??0).toFixed(2))+'</td><td>'+esc(s.district||'—')+'</td><td>'+((s.verified_gujarat_gas_station===true)?'<span class="tag tag-green">Verified flag</span>':'<span class="tag tag-amber">Provisional / unverified</span>')+'</td></tr>').join('')||'<tr><td colspan="5" style="padding:1.5rem;text-align:center">No mapped station records available for proximity comparison.</td></tr>';
+          document.getElementById('candidateNote').textContent=(data.data_note||'')+' Results use straight-line distance; requested radius bands: '+radii+' km.';
+          status.textContent='GIS API connected';msg.textContent='Analysis completed. '+(data.count??normalized.length)+' configured station records considered.';
+        }catch(e){status.textContent='API unavailable';msg.textContent='Analysis failed: '+e.message;document.getElementById('candidateRows').innerHTML='<tr><td colspan="5" style="padding:1.5rem">No result: '+esc(e.message)+'</td></tr>';}
+      }
+      document.getElementById('analyzeCandidate').addEventListener('click',analyze);
+      analyze();
+    })();
+  </script>
 </body>
 </html>

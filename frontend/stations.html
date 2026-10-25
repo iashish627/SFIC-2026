@@ -34,10 +34,10 @@
         <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem" id="menuBtn">☰</button>
         <div>
           <h1 style="font-size:1.15rem;font-weight:700">Station Explorer</h1>
-          <p style="font-size:.75rem;color:#64748b">Browse, filter & inspect 344 Gujarat CNG stations</p>
+          <p style="font-size:.75rem;color:#64748b">Browse and filter sourced station records</p>
         </div>
       </div>
-      <span class="badge">344 RECORDS · QUALITY FLAGGED</span>
+      <span class="badge" id="stationApiStatus">CONNECTING TO API</span>
     </header>
 
     <div style="padding:1.25rem 1.5rem">
@@ -49,10 +49,7 @@
           <option>Kheda</option><option>Vadodara</option><option>Panchmahal</option><option>Dahod</option>
           <option>Navsari</option><option>Valsad</option><option>Gandhinagar</option>
         </select>
-        <select id="typ">
-          <option value="">All types</option>
-          <option>Mother/Online</option><option>Online</option><option>Daughter Booster</option>
-        </select>
+        <select id="typ"><option value="">All types</option></select>
         <select id="risk">
           <option value="">Any utilization</option>
           <option value="high">> 100% (over capacity)</option>
@@ -80,50 +77,45 @@
           </table>
         </div>
       </div>
-      <p style="font-size:.75rem;color:#94a3b8;margin-top:.75rem">Showing enriched sample of 15 stations. Full 344-station master available after coordinate verification & CSV import in Data Center.</p>
+      <p id="stationDataNote" style="font-size:.75rem;color:#64748b;margin-top:.75rem">Loading records from the GIS API. Capacity and sales are shown only when the source provides them.</p>
     </div>
   </div>
 
   <script src="js/app.js"></script>
   <script>
-    function utilTag(u) {
-      if (u > 1) return `<span class="tag tag-red">${(u*100).toFixed(0)}%</span>`;
-      if (u >= 0.85) return `<span class="tag tag-amber">${(u*100).toFixed(0)}%</span>`;
-      return `<span class="tag tag-green">${(u*100).toFixed(0)}%</span>`;
-    }
-    function render() {
-      const q = (document.getElementById('q').value || '').toLowerCase();
-      const d = document.getElementById('dist').value;
-      const t = document.getElementById('typ').value;
-      const r = document.getElementById('risk').value;
-      const rows = window.STATIONS.filter(s => {
-        const mq = !q || s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.district.toLowerCase().includes(q);
-        const md = !d || s.district === d;
-        const mt = !t || s.type === t;
-        let mr = true;
-        if (r === 'high') mr = s.util > 1;
-        else if (r === 'med') mr = s.util >= 0.85 && s.util <= 1;
-        else if (r === 'low') mr = s.util < 0.85;
-        return mq && md && mt && mr;
-      });
-      document.querySelector('#tbl tbody').innerHTML = rows.map(s => `
-        <tr>
-          <td style="font-family:ui-monospace;color:#059669;font-weight:600">${s.id}</td>
-          <td>${s.name}</td>
-          <td>${s.district}</td>
-          <td><span class="tag">${s.type}</span></td>
-          <td>${s.capacity.toLocaleString()} kg/d</td>
-          <td>${s.peak.toLocaleString()} kg/d</td>
-          <td>${utilTag(s.util)}</td>
-          <td><span class="tag tag-green">Active</span></td>
-        </tr>
-      `).join('') || '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8">No stations match filters</td></tr>';
-    }
-    ['q','dist','typ','risk'].forEach(id => document.getElementById(id).addEventListener('input', render));
-    document.getElementById('dist').addEventListener('change', render);
-    document.getElementById('typ').addEventListener('change', render);
-    document.getElementById('risk').addEventListener('change', render);
-    render();
-  </script>
-</body>
+    (() => {
+      const API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');
+      const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      let stations=[];
+      const val=(s,...keys)=>{for(const k of keys){if(s[k]!==undefined&&s[k]!==null&&s[k]!=='')return s[k]}return null};
+      function render(){
+        const q=document.getElementById('q').value.trim().toLowerCase();
+        const d=document.getElementById('dist').value,t=document.getElementById('typ').value,r=document.getElementById('risk').value;
+        const rows=stations.filter(s=>{
+          const text=[s.id,s.name,s.district].join(' ').toLowerCase();
+          const u=s.util;
+          return (!q||text.includes(q))&&(!d||s.district===d)&&(!t||s.type===t)&&(!r||(u!==null&&(r==='high'?u>1:r==='med'?u>=.85&&u<=1:u<.85)));
+        });
+        document.querySelector('#tbl tbody').innerHTML=rows.map(s=>{
+          const utilization=s.util===null?'Not available':(s.util*100).toFixed(0)+'%';
+          const tag=s.util===null?'<span class="tag">No demand/capacity data</span>':s.util>1?'<span class="tag tag-red">'+utilization+'</span>':s.util>=.85?'<span class="tag tag-amber">'+utilization+'</span>':'<span class="tag tag-green">'+utilization+'</span>';
+          return '<tr><td style="font-family:ui-monospace;color:#059669;font-weight:600">'+esc(s.id)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.district||'—')+'</td><td>'+esc(s.type||'Unknown')+'</td><td>'+esc(s.capacity===null?'—':s.capacity.toLocaleString()+' kg/d')+'</td><td>'+esc(s.peak===null?'—':s.peak.toLocaleString()+' kg/d')+'</td><td>'+tag+'</td><td><span class="tag '+(s.verified?'tag-green':'tag-amber')+'">'+(s.verified?'Verified flag':'Provisional / unverified')+'</span></td></tr>';
+        }).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:#64748b">No records match the filters. Demand/capacity filters require those fields to exist in the source.</td></tr>';
+      }
+      async function init(){
+        const status=document.getElementById('stationApiStatus'),note=document.getElementById('stationDataNote');
+        try{
+          const res=await fetch(API+'/api/gis/stations');const data=await res.json();if(!res.ok)throw new Error(data.detail||'HTTP '+res.status);
+          stations=(data.items||[]).map(s=>{const cap=Number(val(s,'capacity_kg_day','effective_capacity_kg_day','capacity'));const peak=Number(val(s,'peak_demand_kg_day','peak','sales_kg_day'));const u=Number(val(s,'utilization','util'));return {raw:s,id:String(val(s,'station_id','outlet_id','id')||'Unknown ID'),name:String(val(s,'station_name','name','outlet_name')||'Unnamed station'),district:String(val(s,'district','district_name')||''),type:String(val(s,'station_type','type','outlet_type')||'Unknown'),capacity:Number.isFinite(cap)&&val(s,'capacity_kg_day','effective_capacity_kg_day','capacity')!==null?cap:null,peak:Number.isFinite(peak)&&val(s,'peak_demand_kg_day','peak','sales_kg_day')!==null?peak:null,util:Number.isFinite(u)&&val(s,'utilization','util')!==null?u:null,verified:s.verified_gujarat_gas_station===true}});
+          const districts=[...new Set(stations.map(s=>s.district).filter(Boolean))].sort();
+          document.getElementById('dist').innerHTML='<option value="">All districts</option>'+districts.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+          const types=[...new Set(stations.map(s=>s.type).filter(x=>x&&x!=='Unknown'))].sort();
+          document.getElementById('typ').innerHTML='<option value="">All types</option>'+types.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+          status.textContent=stations.length+' GIS RECORDS';note.textContent=data.data_note+' Capacity, sales and utilization are not inferred when absent from source data.';render();
+        }catch(e){status.textContent='API UNAVAILABLE';note.textContent='Could not load GIS stations: '+e.message+'. Start FastAPI and retry.';document.querySelector('#tbl tbody').innerHTML='<tr><td colspan="8" style="padding:2rem;text-align:center">Station API unavailable.</td></tr>';}
+      }
+      ['q','dist','typ','risk'].forEach(id=>document.getElementById(id).addEventListener(id==='q'?'input':'change',render));
+      init();
+    })();
+  </script></body>
 </html>
