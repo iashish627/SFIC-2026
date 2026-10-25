@@ -117,6 +117,13 @@ The GIS backend selects the first available default file in this order:
 
 Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`. A companion Gujarat 344-station synthetic data bundle has been generated for integration. It includes a geocoded directory, station-wise synthetic capacity estimates, and 90 days of synthetic daily sales for all 344 station IDs; place its files at the paths documented in the bundle README. 328 coordinates are district/locality-level approximations, not exact station pins. Every sales and capacity value is synthetic and must be displayed as an estimate—not Gujarat Gas operational data. No station-level CNG prices are included without a reliable dated source. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
 
+## Dashboard charts and reference documents
+
+- Network sales chart is a **network-wide daily total** in kg/day, summed across the 344-directory target list; it is not an individual station value.
+- Capacity utilisation chart groups the same 344 records into below 85%, 85–100%, over 100%, and missing-data buckets, calculated from synthetic average sales and capacity estimates.
+- The Data Center includes the supplied historical Gujarat CNG DODO reference PDF under `frontend/downloads/`. The source document is dated 9 July 2019. Its historical fees and candidate locations are not current offers, and it does not provide station-wise sales or dispensing capacity.
+- Site Selection performs straight-line proximity screening against the configured 344-directory records. It is not a validated commercial site ranking; approximate coordinates can change the radius counts.
+
 ## Project Status
 **Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, baseline forecast, A/B/C demand-shock simulator, data provenance view and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite frontend build. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast accuracy has not been holdout-validated, and uploads do not yet persist data.
 
