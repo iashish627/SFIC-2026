@@ -68,7 +68,7 @@
           msg.textContent='Analyzing…';
           const response=await fetch(API+'/api/gis/candidate-analysis?latitude='+encodeURIComponent(lat)+'&longitude='+encodeURIComponent(lon)+'&radii_km='+encodeURIComponent(radii));
           const data=await response.json();if(!response.ok)throw new Error(data.detail||'HTTP '+response.status);
-          const items=data.nearest_stations||data.nearby_stations||data.items||[];
+          const items=data.nearby||data.nearest_stations||data.nearby_stations||data.items||[];
           const normalized=Array.isArray(items)?items:[];
           document.getElementById('candidateRows').innerHTML=normalized.map(s=>'<tr><td>'+esc(s.station_id||s.id||'—')+'</td><td>'+esc(s.station_name||s.name||'—')+'</td><td>'+esc(Number(s.distance_km??s.distance??0).toFixed(2))+'</td><td>'+esc(s.district||'—')+'</td><td>'+((s.verified_gujarat_gas_station===true)?'<span class="tag tag-green">Verified flag</span>':'<span class="tag tag-amber">Provisional / unverified</span>')+'</td></tr>').join('')||'<tr><td colspan="5" style="padding:1.5rem;text-align:center">No mapped station records available for proximity comparison.</td></tr>';
           document.getElementById('candidateNote').textContent=(data.data_note||'')+' Results use straight-line distance; requested radius bands: '+radii+' km.';
