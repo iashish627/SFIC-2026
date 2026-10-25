@@ -57,6 +57,21 @@
         <p id="forecastWarning" class="desc">Forecast accuracy has not been validated on a holdout period.</p>
         <div class="chart-box" style="height:320px"><canvas id="forecastChart"></canvas></div>
       </section>
+      <section class="card" style="margin-bottom:1.25rem">
+        <h3>Network-wide 30-day outlook</h3>
+        <p id="networkForecastNote" class="desc">Aggregated from stations with valid synthetic sales history.</p>
+        <div class="chart-box" style="height:280px"><canvas id="networkForecastChart"></canvas></div>
+      </section>
+      <section class="card" style="margin-bottom:1.25rem">
+        <h3>Weekly outlook & holdout evaluation</h3>
+        <p class="desc">Weekly totals aggregate the selected station's daily baseline. Holdout metrics use an earlier training window and a later test window.</p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin:.75rem 0">
+          <button id="weeklyRun" class="btn btn-ghost" type="button">Generate weekly outlook</button>
+          <button id="evaluateRun" class="btn btn-ghost" type="button">Evaluate on holdout</button>
+        </div>
+        <div id="weeklyResult" class="desc">No weekly outlook generated.</div>
+        <div id="evaluationResult" class="desc" style="margin-top:.75rem">No holdout evaluation run.</div>
+      </section>
       <section class="card">
         <h3>Daily forecast values</h3>
         <div id="forecastTable" style="overflow:auto;margin-top:.75rem"><p class="desc">No forecast generated yet.</p></div>
@@ -72,7 +87,7 @@
       const daysSelect = document.getElementById('forecastDays');
       const status = document.getElementById('forecastApiStatus');
       const message = document.getElementById('forecastMessage');
-      let chart;
+      let chart, networkChart;
       async function getJson(path) {
         const response = await fetch(api + path);
         const body = await response.json().catch(() => ({}));
@@ -88,15 +103,19 @@
           const model = modelSelect.value;
           const data = await getJson('/api/forecast/station/' + encodeURIComponent(id) + '?days=' + days + '&model=' + model);
           document.getElementById('forecastChartTitle').textContent = data.station_id + ' · ' + data.method.replaceAll('_',' ');
-          document.getElementById('forecastWarning').textContent = data.warning + ' History: ' + data.history.valid_days + ' valid days, ' + data.history.start + ' to ' + data.history.end + '.';
+          document.getElementById('forecastWarning').textContent = data.warning + ' Model version: ' + data.model_version + '. Interval method: ' + data.interval_method + '. History: ' + data.history.valid_days + ' valid days, ' + data.history.start + ' to ' + data.history.end + '.';
           const rows = data.forecast;
           if (chart) chart.destroy();
           chart = new Chart(document.getElementById('forecastChart'), {
             type:'line',
-            data:{labels:rows.map(row=>row.date),datasets:[{label:'Predicted demand (kg/day)',data:rows.map(row=>row.predicted_demand_kg),borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.08)',fill:true,tension:.2,pointRadius:3}]},
+            data:{labels:rows.map(row=>row.date),datasets:[
+              {label:'Predicted demand (kg/day)',data:rows.map(row=>row.predicted_demand_kg),borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.08)',fill:false,tension:.2,pointRadius:2},
+              {label:'Illustrative lower bound',data:rows.map(row=>row.lower_bound_kg),borderColor:'#94a3b8',borderDash:[4,4],fill:false,tension:.2,pointRadius:0},
+              {label:'Illustrative upper bound',data:rows.map(row=>row.upper_bound_kg),borderColor:'#94a3b8',borderDash:[4,4],fill:false,tension:.2,pointRadius:0}
+            ]},
             options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}
           });
-          document.getElementById('forecastTable').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:.85rem"><thead><tr><th style="text-align:left;padding:.6rem;border-bottom:1px solid #cbd5e1">Date</th><th style="text-align:right;padding:.6rem;border-bottom:1px solid #cbd5e1">Predicted demand (kg/day)</th></tr></thead><tbody>' + rows.map(row=>'<tr><td style="padding:.55rem;border-bottom:1px solid #e2e8f0">'+row.date+'</td><td style="text-align:right;padding:.55rem;border-bottom:1px solid #e2e8f0">'+Number(row.predicted_demand_kg).toLocaleString()+'</td></tr>').join('') + '</tbody></table>';
+          document.getElementById('forecastTable').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:.85rem"><thead><tr><th style="text-align:left;padding:.6rem;border-bottom:1px solid #cbd5e1">Date</th><th style="text-align:right;padding:.6rem;border-bottom:1px solid #cbd5e1">Predicted (kg/day)</th><th style="text-align:right;padding:.6rem;border-bottom:1px solid #cbd5e1">Lower bound</th><th style="text-align:right;padding:.6rem;border-bottom:1px solid #cbd5e1">Upper bound</th></tr></thead><tbody>' + rows.map(row=>'<tr><td style="padding:.55rem;border-bottom:1px solid #e2e8f0">'+row.date+'</td><td style="text-align:right;padding:.55rem;border-bottom:1px solid #e2e8f0">'+Number(row.predicted_demand_kg).toLocaleString()+'</td><td style="text-align:right;padding:.55rem;border-bottom:1px solid #e2e8f0">'+Number(row.lower_bound_kg).toLocaleString()+'</td><td style="text-align:right;padding:.55rem;border-bottom:1px solid #e2e8f0">'+Number(row.upper_bound_kg).toLocaleString()+'</td></tr>').join('') + '</tbody></table>';
           message.textContent = 'Generated ' + rows.length + ' daily predictions using ' + data.method + '.';
           status.textContent = 'API connected · SYNTHETIC';
         } catch (error) {
@@ -123,8 +142,34 @@
           message.textContent = 'Could not load station history: ' + (error.message || error);
         }
       }
+      async function loadNetworkForecast() {
+        try {
+          const data = await getJson('/api/forecast/network?days=30&model=' + modelSelect.value);
+          document.getElementById('networkForecastNote').textContent = data.warning + ' Included stations: ' + data.stations_included + '; missing history: ' + data.stations_without_history + '; model: ' + data.model_version + '.';
+          if (networkChart) networkChart.destroy();
+          networkChart = new Chart(document.getElementById('networkForecastChart'), {
+            type:'line',data:{labels:data.forecast.map(row=>row.date),datasets:[{label:'Network forecast (kg/day)',data:data.forecast.map(row=>row.predicted_demand_kg),borderColor:'#059669',backgroundColor:'rgba(5,150,105,.08)',fill:true,tension:.2,pointRadius:1}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}
+          });
+        } catch(error) { document.getElementById('networkForecastNote').textContent='Network forecast unavailable: '+(error.message||error); }
+      }
+      async function runWeekly() {
+        try {
+          const data=await getJson('/api/forecast/weekly/'+encodeURIComponent(stationSelect.value)+'?weeks=4&model='+modelSelect.value);
+          document.getElementById('weeklyResult').innerHTML='<table style="width:100%;font-size:.82rem;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:.45rem">Week</th><th style="text-align:left;padding:.45rem">Dates</th><th style="text-align:right;padding:.45rem">Total demand (kg)</th></tr></thead><tbody>'+data.weekly_forecast.map(row=>'<tr><td style="padding:.45rem">Week '+row.week+'</td><td style="padding:.45rem">'+row.start_date+' – '+row.end_date+'</td><td style="text-align:right;padding:.45rem">'+Number(row.predicted_demand_kg).toLocaleString()+'</td></tr>').join('')+'</tbody></table><p class="desc">'+data.warning+'</p>';
+        } catch(error) { document.getElementById('weeklyResult').textContent='Weekly forecast failed: '+(error.message||error); }
+      }
+      async function runEvaluation() {
+        try {
+          const data=await getJson('/api/forecast/evaluate/'+encodeURIComponent(stationSelect.value)+'?test_days=14&model='+modelSelect.value);
+          document.getElementById('evaluationResult').textContent='Chronological holdout · train through '+data.train_end+' · test '+data.test_start+' to '+data.test_end+' · MAE '+data.mae_kg_day+' kg/day · RMSE '+data.rmse_kg_day+' kg/day · WAPE '+(data.wape_pct===null?'not defined (zero actual total)':data.wape_pct+'%')+'. '+data.warning;
+        } catch(error) { document.getElementById('evaluationResult').textContent='Evaluation unavailable: '+(error.message||error); }
+      }
       document.getElementById('forecastRun').addEventListener('click', runForecast);
-      init();
+      document.getElementById('weeklyRun').addEventListener('click', runWeekly);
+      document.getElementById('evaluateRun').addEventListener('click', runEvaluation);
+      modelSelect.addEventListener('change',()=>{loadNetworkForecast();runForecast();});
+      init().then(loadNetworkForecast);
     })();
   </script>
 </body>
