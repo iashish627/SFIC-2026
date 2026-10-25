@@ -57,6 +57,16 @@
         <p id="forecastWarning" class="desc">Forecast accuracy has not been validated on a holdout period.</p>
         <div class="chart-box" style="height:320px"><canvas id="forecastChart"></canvas></div>
       </section>
+      <section class="card" style="margin-bottom:1.25rem">
+        <h3>Weekly outlook & holdout evaluation</h3>
+        <p class="desc">Weekly totals aggregate the daily baseline. Holdout metrics use an earlier training window and a later test window.</p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin:.75rem 0">
+          <button id="weeklyRun" class="btn btn-ghost" type="button">Generate weekly outlook</button>
+          <button id="evaluateRun" class="btn btn-ghost" type="button">Evaluate on holdout</button>
+        </div>
+        <div id="weeklyResult" class="desc">No weekly outlook generated.</div>
+        <div id="evaluationResult" class="desc" style="margin-top:.75rem">No holdout evaluation run.</div>
+      </section>
       <section class="card">
         <h3>Daily forecast values</h3>
         <div id="forecastTable" style="overflow:auto;margin-top:.75rem"><p class="desc">No forecast generated yet.</p></div>
@@ -123,7 +133,23 @@
           message.textContent = 'Could not load station history: ' + (error.message || error);
         }
       }
+      async function runWeekly() {
+        try {
+          const id = stationSelect.value, model = modelSelect.value;
+          const data = await getJson('/api/forecast/weekly/' + encodeURIComponent(id) + '?weeks=4&model=' + model);
+          document.getElementById('weeklyResult').innerHTML = '<table style="width:100%;font-size:.82rem;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:.45rem">Week</th><th style="text-align:left;padding:.45rem">Dates</th><th style="text-align:right;padding:.45rem">Total demand (kg)</th></tr></thead><tbody>' + data.weekly_forecast.map(row=>'<tr><td style="padding:.45rem">Week '+row.week+'</td><td style="padding:.45rem">'+row.start_date+' – '+row.end_date+'</td><td style="text-align:right;padding:.45rem">'+Number(row.predicted_demand_kg).toLocaleString()+'</td></tr>').join('') + '</tbody></table><p class="desc">'+data.warning+'</p>';
+        } catch(error) { document.getElementById('weeklyResult').textContent = 'Weekly forecast failed: ' + (error.message || error); }
+      }
+      async function runEvaluation() {
+        try {
+          const id = stationSelect.value, model = modelSelect.value;
+          const data = await getJson('/api/forecast/evaluate/' + encodeURIComponent(id) + '?test_days=14&model=' + model);
+          document.getElementById('evaluationResult').textContent = 'Chronological holdout · train through ' + data.train_end + ' · test ' + data.test_start + ' to ' + data.test_end + ' · MAE ' + data.mae_kg_day + ' kg/day · WAPE ' + (data.wape_pct === null ? 'not defined (zero actual total)' : data.wape_pct + '%') + '. ' + data.warning;
+        } catch(error) { document.getElementById('evaluationResult').textContent = 'Evaluation unavailable: ' + (error.message || error); }
+      }
       document.getElementById('forecastRun').addEventListener('click', runForecast);
+      document.getElementById('weeklyRun').addEventListener('click', runWeekly);
+      document.getElementById('evaluateRun').addEventListener('click', runEvaluation);
       init();
     })();
   </script>
