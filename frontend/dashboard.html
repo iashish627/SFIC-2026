@@ -134,8 +134,8 @@
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
             <div>
-              <h3>Network demand: last 28 days + 14-day baseline</h3>
-              <p class="desc" style="margin:0">Solid = observed sales, dashed = seasonal-naive baseline. Synthetic values — illustrative only.</p>
+              <h3>Daily synthetic demo sales (available date range)</h3>
+              <p class="desc" style="margin:0">Daily totals computed from valid synthetic demo records; not observed operational sales.</p>
             </div>
             <span class="badge">SYNTHETIC DEMO</span>
           </div>
@@ -155,27 +155,7 @@
         <div class="card">
           <h3>Top risk signals</h3>
           <p class="desc">Rule-based flags from baseline vs capacity and data quality. Not operational alerts.</p>
-          <div style="display:flex;flex-direction:column;gap:.65rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
-              <span style="font-family:ui-monospace;color:#475569">GGL-AHM-008</span>
-              <span class="risk-high">Forecast peak 3,072 kg/day = 118% of capacity</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
-              <span style="font-family:ui-monospace;color:#475569">GGL-SUR-004</span>
-              <span class="risk-high">Forecast peak 2,397 kg/day = 121% of capacity</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
-              <span style="font-family:ui-monospace;color:#475569">GGL-VAD-002</span>
-              <span class="risk-high">Forecast peak 2,742 kg/day = 115% of capacity</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid #f1f5f9;font-size:.85rem">
-              <span style="font-family:ui-monospace;color:#475569">GGL-0148</span>
-              <span class="risk-med">Forecast peak 6,200 kg/day = 113% of capacity</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;font-size:.85rem">
-              <span style="font-family:ui-monospace;color:#475569">GGL-NEW-031</span>
-              <span class="risk-med">Forecast peak 3,600 kg/day = 106% of capacity</span>
-            </div>
+          <p id="riskDataNote" class="desc">Operational risk signals are not calculated by the dashboard summary API. No risk values are displayed rather than showing unverified hard-coded station metrics.</p>
           </div>
         </div>
         <div class="card">
