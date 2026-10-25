@@ -115,7 +115,28 @@ The GIS backend selects the first available default file in this order:
 Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`; rows without coordinates are skipped. The 344-record source file is not currently included in this repository, so a local copy is needed to use it. Geocoding output is a candidate match and must be manually reviewed before calling a location verified. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
 
 ## Project Status
-**Stage:** Hackathon prototype with an implemented GIS API and Network Map page. Forecasting, site-selection and simulator integrations may still be incomplete; check their module documentation and actual runtime status before relying on them.
+**Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, baseline forecast, A/B/C demand-shock simulator, data provenance view and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite frontend build. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast accuracy has not been holdout-validated, and uploads do not yet persist data.
 
 ---
 Built as a student hackathon prototype for SFIC 2026.
+
+
+## Integrated API endpoints
+
+- `GET /health` — backend health.
+- `GET /api/dashboard/summary` — dashboard metrics and daily sales series with synthetic provenance.
+- `GET /api/gis/stations` — configured coordinate-valid station/outlet records.
+- `GET /api/gis/stations/{station_id}/nearby` — nearby records by straight-line distance.
+- `GET /api/gis/candidate-analysis?latitude=22.3&longitude=72.5&radii_km=5,10,20` — proximity diagnostics, not demand-based site ranking.
+- `GET /api/forecast/stations` and `GET /api/forecast/station/{station_id}?days=14&model=seasonal_naive` — synthetic-history forecast baselines.
+- `GET /api/simulator/demo-inputs` and `POST /api/simulator/run` — A/B/C expansion and demand-shock simulation.
+
+## Validation
+
+From the repository root, install `backend/requirements.txt` and run:
+
+```bash
+python -m pytest backend/tests -q
+```
+
+For the static HTML prototype, serve the `frontend/` directory on port 5173 and run FastAPI on port 8000. The Vite/React source in `frontend/src/` is also built by CI; the current hackathon navigation pages are static HTML and call the same API directly.
