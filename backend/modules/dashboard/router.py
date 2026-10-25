@@ -53,7 +53,7 @@ def dashboard_summary():
     daily_rows = [{"date": d, "sales_kg": round(v, 1)} for d, v in sorted(daily.items())]
     return {
       "provenance": "synthetic_demo",
-      "data_note": "Gujarat 344-directory target list. Sales and capacity are synthetic estimates, not actual Gujarat Gas operational data.",
+      "data_note": "Gujarat 344-directory target list. Sales and capacity are synthetic estimates, not Gujarat Gas operational data.",
       "stations": {"demo_total": len(stations), "with_capacity": capacities, "with_valid_coordinates": located, "gis_records_loaded": len(stations), "district_count": len(district_counts), "utilisation_buckets": utilisation_buckets},
       "sales": {"valid_record_count": len(valid), "daily_totals": daily_rows[-42:], "daily_total_unit": "kg/day across all stations", "date_min": min((d.isoformat() for d,_,_ in valid), default=None), "date_max": max((d.isoformat() for d,_,_ in valid), default=None)},
       "district_counts": dict(sorted(district_counts.items()))
