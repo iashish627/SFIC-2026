@@ -52,11 +52,11 @@
       async function get(path){const r=await fetch(API+path);const d=await r.json();if(!r.ok)throw new Error(d.detail||'HTTP '+r.status);return d;}
       async function init(){
         try{
-          const [d,g]=await Promise.all([get('/api/dashboard/summary'),get('/api/gis/stations')]);
+          const [d,g,q]=await Promise.all([get('/api/dashboard/summary'),get('/api/gis/stations'),get('/api/health/data')]);
           document.getElementById('dataSummary').innerHTML='<p><strong>Demo stations:</strong> '+fmt(d.stations.demo_total)+'</p><p><strong>Capacity rows matched:</strong> '+fmt(d.stations.with_capacity)+'</p><p><strong>Sales records valid:</strong> '+fmt(d.sales.valid_record_count)+'</p><p><strong>Sales date range:</strong> '+(d.sales.date_min||'—')+' to '+(d.sales.date_max||'—')+'</p><p><strong>District count:</strong> '+fmt(d.stations.district_count)+'</p>';
           document.getElementById('gisSummary').innerHTML='<p><strong>Coordinate-valid records:</strong> '+fmt(g.count)+'</p><p><strong>Records flagged verified:</strong> '+fmt((g.items||[]).filter(x=>x.verified_gujarat_gas_station===true).length)+'</p><p><strong>Provisional/unverified:</strong> '+fmt((g.items||[]).filter(x=>x.verified_gujarat_gas_station!==true).length)+'</p>';
-          document.getElementById('dataQualityNotes').textContent=d.data_note+' '+g.data_note+' GIS record counts can differ from the synthetic demo station count because they come from separate sources.';
-        }catch(e){document.getElementById('dataSummary').textContent='Could not load dashboard data: '+e.message;document.getElementById('gisSummary').textContent='Could not load GIS data: '+e.message;document.getElementById('dataQualityNotes').textContent='Start FastAPI and retry. No fallback numbers are invented.';}
+          document.getElementById('dataQualityNotes').innerHTML='<p><strong>Data status:</strong> '+q.status+'</p><p><strong>Last observed sales date:</strong> '+(q.layers.daily_sales.date_max||'—')+'</p><p><strong>Days since last observation:</strong> '+(q.layers.daily_sales.stale_days_since_last_observation??'unknown')+'</p><p><strong>Rows with missing sales:</strong> '+fmt(q.layers.daily_sales.missing_sales_records)+'</p><p><strong>Invalid sales rows:</strong> '+fmt(q.layers.daily_sales.invalid_records)+'</p><p><strong>Stations missing capacity:</strong> '+fmt(q.layers.capacity.stations_without_capacity)+'</p><p>'+q.warnings.join(' ')+'</p><p>'+d.data_note+' '+g.data_note+'</p>';
+        }catch(e){document.getElementById('dataSummary').textContent='Could not load dashboard data: '+e.message;document.getElementById('gisSummary').textContent='Could not load GIS data: '+e.message;document.getElementById('dataQualityNotes').textContent='Data health API unavailable: '+e.message+'. Start FastAPI and retry; no fallback numbers are invented.';}
       }
       init();
     })();
