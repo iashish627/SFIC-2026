@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local demo scenario persistence
+/data/processed/scenario_runs.sqlite3
