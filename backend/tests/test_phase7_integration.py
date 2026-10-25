@@ -47,8 +47,12 @@ def test_seasonal_naive_uses_exact_calendar_weekday_and_fallback_for_gap(monkeyp
     # A history point exists exactly seven days before the first target date.
     history = {
         "TEST-STATION": {
+            end - timedelta(days=7): 50.0,
             end - timedelta(days=6): 111.0,
+            end - timedelta(days=4): 150.0,
+            end - timedelta(days=3): 200.0,
             end - timedelta(days=2): 222.0,
+            end - timedelta(days=1): 333.0,
             end: 333.0,
         }
     }
@@ -61,4 +65,4 @@ def test_seasonal_naive_uses_exact_calendar_weekday_and_fallback_for_gap(monkeyp
     assert rows[0]["method"] == "seasonal_naive_7d"
     # No matching point 7 calendar days before target day two: use recent-mean fallback.
     assert rows[1]["method"] == "moving_average_fallback_missing_weekday"
-    assert rows[1]["predicted_demand_kg"] == 222.0
+    assert rows[1]["predicted_demand_kg"] == round(sum(history["TEST-STATION"].values()) / 7, 2)
