@@ -35,39 +35,14 @@
     </header>
 
     <div style="padding:1.25rem 1.5rem">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem">
-        <div class="card" style="cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('risk')">
-          <h3>Network Risk Summary</h3>
-          <p class="desc">Stations exceeding capacity, top risk signals, recommended actions</p>
-          <span style="color:#059669;font-weight:600;font-size:.85rem">Download PDF →</span>
-        </div>
-        <div class="card" style="cursor:pointer" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('sites')">
-          <h3>Site Ranking Pack</h3>
-          <p class="desc">Full ranked list of 28 candidates with scores & drivers</p>
-          <span style="color:#059669;font-weight:600;font-size:.85rem">Download Excel →</span>
-        </div>
-        <div class="card" style="cursor:pointer" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('scenario')">
-          <h3>Scenario Comparison (A/B/C)</h3>
-          <p class="desc">What-if expansion impact on peak utilization by district</p>
-          <span style="color:#059669;font-weight:600;font-size:.85rem">Download PDF →</span>
-        </div>
-        <div class="card" style="cursor:pointer" onmouseover="this.style.borderColor='#a7f3d0'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="downloadReport('master')">
-          <h3>Station Master Export</h3>
-          <p class="desc">344-station directory with quality flags (duplicate, missing coords)</p>
-          <span style="color:#059669;font-weight:600;font-size:.85rem">Download CSV →</span>
-        </div>
+      <p class="desc" style="margin-bottom:1rem">Exports are generated from the same APIs used by the dashboard. CSV files contain returned API data and explicit provenance/assumptions; no fabricated PDF or Excel reports are generated.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('summary')"><h3>Dashboard Data Summary</h3><p class="desc">Current synthetic KPI counts and daily sales series.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('stations')"><h3>GIS Station Master</h3><p class="desc">Configured coordinate-valid station/outlet records with source and verification fields.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('forecast')"><h3>14-Day Station Forecast</h3><p class="desc">Baseline forecast for the first station with valid synthetic history.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
+        <button class="card" type="button" style="text-align:left;cursor:pointer" onclick="downloadReport('scenario')"><h3>A/B/C Scenario Comparison</h3><p class="desc">Default synthetic-input scenario output, including assumptions and warnings.</p><strong style="color:#059669;font-size:.85rem">Export CSV →</strong></button>
       </div>
-
-      <div class="card">
-        <h3>About this prototype</h3>
-        <p style="font-size:.875rem;color:#475569;line-height:1.6">
-          <strong>CNG Network Intelligence</strong> is an advanced decision-support demo focused on
-          <strong>station-level demand forecasting</strong>, sales & RTO-driven growth, and optimized network expansion planning
-          for Gujarat CNG infrastructure. Layout and interaction patterns are inspired by the reference digital twin while
-          adding live scenario controls, multi-model forecasts, risk overlays and transparent ranking logic.
-          All numerical forecasts remain synthetic for illustration.
-        </p>
-      </div>
+      <section class="card"><h3>Export status</h3><p id="reportStatus" class="desc" role="status">Exports query live local APIs when clicked. Start FastAPI on port 8000.</p><p class="desc">Limitations: no verified operational sales feed, no validated forecast accuracy, no demand-based candidate ranking, and no PDF/XLSX reporting engine are currently connected.</p></section>
     </div>
   </div>
   <script src="js/app.js"></script>
