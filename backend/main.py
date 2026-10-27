@@ -11,13 +11,11 @@ from backend.modules.data_quality.router import router as data_quality_router
 
 app = FastAPI(title="CNG Network Intelligence API", version="0.3.0")
 
-# Set FRONTEND_ORIGIN on the hosting provider to your deployed frontend URL.
-# For local development, the Vite origin remains allowed by default.
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
-allowed_origins = [frontend_origin, "http://127.0.0.1:5173"]
+# Public hackathon demo API: allow requests from the deployed static site and
+# local development origins. No cookies or credentialed requests are used.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
