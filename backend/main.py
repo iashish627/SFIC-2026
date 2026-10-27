@@ -1,4 +1,5 @@
 """Composable FastAPI entrypoint for the shared CNG Network Intelligence backend."""
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.modules.gis.router import router as gis_router
@@ -9,13 +10,19 @@ from backend.modules.scenarios.router import router as scenarios_router
 from backend.modules.data_quality.router import router as data_quality_router
 
 app = FastAPI(title="CNG Network Intelligence API", version="0.3.0")
+
+# Set FRONTEND_ORIGIN on the hosting provider to your deployed frontend URL.
+# For local development, the Vite origin remains allowed by default.
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+allowed_origins = [frontend_origin, "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
 app.include_router(gis_router)
 app.include_router(dashboard_router)
 app.include_router(simulator_router)
