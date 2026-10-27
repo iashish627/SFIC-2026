@@ -19,7 +19,7 @@
       <a href="simulator.html" class="nav-item">What-if Simulator</a>
       <a href="data.html" class="nav-item active">Data Center</a>
       <a href="reports.html" class="nav-item">Reports</a>
-    </nav>
+    <a href="cost-calculator.html" class="nav-item">CNG Cost Calculator</a><a href="gas-price.html" class="nav-item">CNG Gas Price</a><a href="benefits.html" class="nav-item">Benefits of CNG</a><a href="car-care.html" class="nav-item">Car Care Tips</a></nav>
     <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
   </aside>
 
@@ -41,6 +41,7 @@
         <section class="card"><h3>GIS station layer</h3><p class="desc">Only coordinate-valid records exposed by the GIS API are counted.</p><div id="gisSummary" class="desc">Loading GIS records…</div></section>
       </div>
       <section class="card" style="margin-bottom:1rem"><h3>Data source and quality notes</h3><div id="dataQualityNotes" class="desc">Loading provenance…</div></section>
+      <section class="card" style="margin-bottom:1rem"><h3>Reference downloads</h3><p class="desc">The supplied SFIC-2026 Gujarat CNG DODO reference summarizes historical candidate locations, land/site criteria and responsibility models. Its source is dated 9 July 2019; fees and locations are historical, not current offers.</p><p><a class="quick-link" href="downloads/SFIC_2026_Gujarat_CNG_DODO.pdf" download>Download Gujarat CNG DODO reference PDF <span>↓</span></a></p><p class="desc">This reference does not contain station-level capacity or sales figures. Those values in the demo remain synthetic estimates.</p></section>
       <section class="card"><h3>Import capability</h3><p class="desc">CSV/XLSX upload controls are intentionally not presented as working: there is currently no authenticated ingestion endpoint, schema validation workflow, or persistence layer for uploads. To replace demo inputs, prepare CSVs using the templates in <code>data/raw/</code>, configure the GIS source with <code>CNG_STATIONS_CSV</code>, and integrate operational sales/capacity data through a validated backend ingestion path.</p><p class="desc">No file is uploaded or processed by this page. This avoids suggesting that an upload changes the digital twin when it does not.</p></section>
     </div>
   </div>

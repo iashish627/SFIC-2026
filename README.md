@@ -77,11 +77,13 @@ SFIC-2026/
 
 Metrics are only as reliable as their input data and assumptions.
 
-## Network Map / GIS Feature
+## Station Locator and Network Map / GIS Feature
 
-The Network Map is a Leaflet-based view of coordinate-backed CNG outlet records returned by the GIS API.
+The Network Map is a Leaflet-based station-locator experience inspired by public CNG locator pages: district and locality filters, station search/cards, map selection, and proximity analysis.
 
-- Displays only records with valid latitude/longitude that fall inside the map's approximate Gujarat display outline; records without usable coordinates are not plotted.
+- Locator filters support district, city/locality, and free-text station/address search. Station cards can focus the map on a selected result.
+- The 5 km, 10 km, and 20 km radius controls support preliminary proximity screening. Distances are straight-line distances, not road distances.
+- Only records with valid latitude/longitude inside the approximate Gujarat display outline are plotted; records without usable coordinates are not plotted.
 - Groups nearby markers into clusters. Marker colours distinguish verified operator records from provisional candidates.
 - Station popups show available station identifiers, district, coordinates, source and verification status.
 - Optional filters include risk stations and verified operator stations. Risk filtering depends on utilization fields being present in the data.
@@ -108,11 +110,19 @@ Open `http://localhost:5173/map.html`. The map requests `http://localhost:8000/a
 ### GIS data source priority
 
 The GIS backend selects the first available default file in this order:
-1. `member-3-forecasting/data/gujarat_gas_directory_344_geocoded.csv`
-2. `member-3-forecasting/data/gujarat_gas_directory_344_records.csv`
-3. `data/processed/stations.csv` (public outlet mapping; provisional)
+1. `data/gujarat_gas_directory_344_geocoded.csv` (344-record Gujarat Gas directory target list)
+2. `member-3-forecasting/data/gujarat_gas_directory_344_geocoded.csv`
+3. `member-3-forecasting/data/gujarat_gas_directory_344_records.csv`
+4. `data/processed/stations.csv` (broader public outlet mapping; provisional fallback)
 
-Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`; rows without coordinates are skipped. The 344-record source file is not currently included in this repository, so a local copy is needed to use it. Geocoding output is a candidate match and must be manually reviewed before calling a location verified. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
+Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`. A companion Gujarat 344-station synthetic data bundle has been generated for integration. It includes a geocoded directory, station-wise synthetic capacity estimates, and 90 days of synthetic daily sales for all 344 station IDs; place its files at the paths documented in the bundle README. 328 coordinates are district/locality-level approximations, not exact station pins. Every sales and capacity value is synthetic and must be displayed as an estimate—not Gujarat Gas operational data. No station-level CNG prices are included without a reliable dated source. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
+
+## Dashboard charts and reference documents
+
+- Network sales chart is a **network-wide daily total** in kg/day, summed across the 344-directory target list; it is not an individual station value.
+- Capacity utilisation chart groups the same 344 records into below 85%, 85–100%, over 100%, and missing-data buckets, calculated from synthetic average sales and capacity estimates.
+- The Data Center includes the supplied historical Gujarat CNG DODO reference PDF under `frontend/downloads/`. The source document is dated 9 July 2019. Its historical fees and candidate locations are not current offers, and it does not provide station-wise sales or dispensing capacity.
+- Site Selection performs straight-line proximity screening against the configured 344-directory records. It is not a validated commercial site ranking; approximate coordinates can change the radius counts.
 
 ## Project Status
 **Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, baseline forecast, A/B/C demand-shock simulator, data provenance view and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite frontend build. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast accuracy has not been holdout-validated, and uploads do not yet persist data.
@@ -145,3 +155,8 @@ For the static HTML prototype, serve the `frontend/` directory on port 5173 and 
 ## Production database schema starter
 
 `backend/db/schema.sql` documents a PostgreSQL/PostGIS target schema for station master, sales, effective-dated capacity, supply constraints, source provenance, candidate sites, forecasts, model evaluations, scenario runs, station impacts, site rankings and audit logs. It is a migration starter only and is **not automatically applied** by the hackathon demo. The running demo stores saved scenarios in local SQLite; before production, replace that adapter with managed PostgreSQL, apply reviewed migrations, and add server-side authentication/authorization and audit enforcement.
+
+
+## Gujarat-wide feature scope
+
+The target station list is the **344-record Gujarat Gas directory only**; do not merge the separate 1,510-outlet flagged dataset into the station locator. The planned Gujarat-wide journey is: search by district/locality/name/address; inspect station details and 5/10/20 km proximity; view demand forecasts up to 30 days; compare demand with effective-capacity estimates; apply festival/holiday demand shocks; screen candidate sites using proximity, demand and coverage gaps; compare no change, existing-station expansion and new-station construction on the same demand baseline; and export district/station-level reports with assumptions and data-quality labels. CNG prices should appear only with operator/source and effective date. Proximity is a screening signal, not proof of commercial viability.

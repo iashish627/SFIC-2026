@@ -1,121 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Station Explorer · CNG Network Intelligence</title>
-  <link rel="stylesheet" href="css/app.css" />
-</head>
-<body>
-  <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
-  <aside id="sidebar" class="sidebar">
-    <div class="logo">
-      <div class="logo-mark">CN</div>
-      <div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div>
-    </div>
-    <nav class="nav">
-      <a href="dashboard.html" class="nav-item">Overview</a>
-      <a href="stations.html" class="nav-item active">Station Explorer</a>
-      <a href="map.html" class="nav-item">Network Map</a>
-      <a href="forecast.html" class="nav-item">Demand Forecast</a>
-      <a href="sites.html" class="nav-item">Site Selection</a>
-      <a href="simulator.html" class="nav-item">What-if Simulator</a>
-      <a href="data.html" class="nav-item">Data Center</a>
-      <a href="reports.html" class="nav-item">Reports</a>
-    </nav>
-    <div class="user-block">
-      <button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button>
-    </div>
-  </aside>
-
-  <div class="main">
-    <header class="topbar">
-      <div style="display:flex;align-items:center;gap:.75rem">
-        <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem" id="menuBtn">☰</button>
-        <div>
-          <h1 style="font-size:1.15rem;font-weight:700">Station Explorer</h1>
-          <p style="font-size:.75rem;color:#64748b">Browse and filter sourced station records</p>
-        </div>
-      </div>
-      <span class="badge" id="stationApiStatus">CONNECTING TO API</span>
-    </header>
-
-    <div style="padding:1.25rem 1.5rem">
-      <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
-        <input type="search" id="q" placeholder="Search name, ID, district…" style="flex:1;min-width:200px" />
-        <select id="dist">
-          <option value="">All districts</option>
-          <option>Surat</option><option>Ahmedabad</option><option>Bharuch</option><option>Anand</option>
-          <option>Kheda</option><option>Vadodara</option><option>Panchmahal</option><option>Dahod</option>
-          <option>Navsari</option><option>Valsad</option><option>Gandhinagar</option>
-        </select>
-        <select id="typ"><option value="">All types</option></select>
-        <select id="risk">
-          <option value="">Any utilization</option>
-          <option value="high">> 100% (over capacity)</option>
-          <option value="med">85–100%</option>
-          <option value="low">< 85%</option>
-        </select>
-      </div>
-
-      <div class="card" style="padding:0;overflow:hidden">
-        <div style="overflow-x:auto">
-          <table class="data" id="tbl">
-            <thead>
-              <tr>
-                <th>Station ID</th>
-                <th>Name</th>
-                <th>District</th>
-                <th>Type</th>
-                <th>Capacity</th>
-                <th>Peak demand</th>
-                <th>Utilization</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <p id="stationDataNote" style="font-size:.75rem;color:#64748b;margin-top:.75rem">Loading records from the GIS API. Capacity and sales are shown only when the source provides them.</p>
-    </div>
-  </div>
-
-  <script src="js/app.js"></script>
-  <script>
-    (() => {
-      const API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');
-      const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      let stations=[];
-      const val=(s,...keys)=>{for(const k of keys){if(s[k]!==undefined&&s[k]!==null&&s[k]!=='')return s[k]}return null};
-      function render(){
-        const q=document.getElementById('q').value.trim().toLowerCase();
-        const d=document.getElementById('dist').value,t=document.getElementById('typ').value,r=document.getElementById('risk').value;
-        const rows=stations.filter(s=>{
-          const text=[s.id,s.name,s.district].join(' ').toLowerCase();
-          const u=s.util;
-          return (!q||text.includes(q))&&(!d||s.district===d)&&(!t||s.type===t)&&(!r||(u!==null&&(r==='high'?u>1:r==='med'?u>=.85&&u<=1:u<.85)));
-        });
-        document.querySelector('#tbl tbody').innerHTML=rows.map(s=>{
-          const utilization=s.util===null?'Not available':(s.util*100).toFixed(0)+'%';
-          const tag=s.util===null?'<span class="tag">No demand/capacity data</span>':s.util>1?'<span class="tag tag-red">'+utilization+'</span>':s.util>=.85?'<span class="tag tag-amber">'+utilization+'</span>':'<span class="tag tag-green">'+utilization+'</span>';
-          return '<tr><td style="font-family:ui-monospace;color:#059669;font-weight:600">'+esc(s.id)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.district||'—')+'</td><td>'+esc(s.type||'Unknown')+'</td><td>'+esc(s.capacity===null?'—':s.capacity.toLocaleString()+' kg/d')+'</td><td>'+esc(s.peak===null?'—':s.peak.toLocaleString()+' kg/d')+'</td><td>'+tag+'</td><td><span class="tag '+(s.verified?'tag-green':'tag-amber')+'">'+(s.verified?'Verified flag':'Provisional / unverified')+'</span></td></tr>';
-        }).join('')||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:#64748b">No records match the filters. Demand/capacity filters require those fields to exist in the source.</td></tr>';
-      }
-      async function init(){
-        const status=document.getElementById('stationApiStatus'),note=document.getElementById('stationDataNote');
-        try{
-          const res=await fetch(API+'/api/gis/stations');const data=await res.json();if(!res.ok)throw new Error(data.detail||'HTTP '+res.status);
-          stations=(data.items||[]).map(s=>{const cap=Number(val(s,'capacity_kg_day','effective_capacity_kg_day','capacity'));const peak=Number(val(s,'peak_demand_kg_day','peak','sales_kg_day'));const u=Number(val(s,'utilization','util'));return {raw:s,id:String(val(s,'station_id','outlet_id','id')||'Unknown ID'),name:String(val(s,'station_name','name','outlet_name')||'Unnamed station'),district:String(val(s,'district','district_name')||''),type:String(val(s,'station_type','type','outlet_type')||'Unknown'),capacity:Number.isFinite(cap)&&val(s,'capacity_kg_day','effective_capacity_kg_day','capacity')!==null?cap:null,peak:Number.isFinite(peak)&&val(s,'peak_demand_kg_day','peak','sales_kg_day')!==null?peak:null,util:Number.isFinite(u)&&val(s,'utilization','util')!==null?u:null,verified:s.verified_gujarat_gas_station===true}});
-          const districts=[...new Set(stations.map(s=>s.district).filter(Boolean))].sort();
-          document.getElementById('dist').innerHTML='<option value="">All districts</option>'+districts.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
-          const types=[...new Set(stations.map(s=>s.type).filter(x=>x&&x!=='Unknown'))].sort();
-          document.getElementById('typ').innerHTML='<option value="">All types</option>'+types.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
-          status.textContent=stations.length+' GIS RECORDS';note.textContent=data.data_note+' Capacity, sales and utilization are not inferred when absent from source data.';render();
-        }catch(e){status.textContent='API UNAVAILABLE';note.textContent='Could not load GIS stations: '+e.message+'. Start FastAPI and retry.';document.querySelector('#tbl tbody').innerHTML='<tr><td colspan="8" style="padding:2rem;text-align:center">Station API unavailable.</td></tr>';}
-      }
-      ['q','dist','typ','risk'].forEach(id=>document.getElementById(id).addEventListener(id==='q'?'input':'change',render));
-      init();
-    })();
-  </script></body>
-</html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Station Explorer · CNG Network Intelligence</title><link rel="stylesheet" href="css/app.css"/>
+<style>
+.filter-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:.65rem;margin-bottom:1rem}
+.status-note{font-size:.78rem;color:#64748b;margin:.75rem 0;line-height:1.5}
+.data-label{display:inline-block;border-radius:6px;padding:.25rem .4rem;background:#fff1c2;color:#92400e;font-size:.7rem}
+@media(max-width:850px){.filter-row{grid-template-columns:1fr 1fr}} @media(max-width:540px){.filter-row{grid-template-columns:1fr}}
+</style></head><body>
+<div id="overlay" class="overlay" onclick="toggleSidebar()"></div><aside id="sidebar" class="sidebar">
+<div class="logo"><div class="logo-mark">CN</div><div><div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div></div></div>
+<nav class="nav"><a href="dashboard.html" class="nav-item">Overview</a><a href="stations.html" class="nav-item active">Station Explorer</a><a href="map.html" class="nav-item">Network Map</a><a href="forecast.html" class="nav-item">Demand Forecast</a><a href="sites.html" class="nav-item">Site Selection</a><a href="simulator.html" class="nav-item">What-if Simulator</a><a href="data.html" class="nav-item">Data Center</a><a href="reports.html" class="nav-item">Reports</a><a href="cost-calculator.html" class="nav-item">CNG Cost Calculator</a><a href="gas-price.html" class="nav-item">CNG Gas Price</a><a href="benefits.html" class="nav-item">Benefits of CNG</a><a href="car-care.html" class="nav-item">Car Care Tips</a></nav>
+<div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div></aside>
+<div class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:.75rem"><button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button><div><h1 style="font-size:1.15rem;font-weight:700">Station Explorer</h1><p style="font-size:.75rem;color:#64748b">Gujarat 344-directory target list · estimated capacity and sales</p></div></div><span class="badge" id="stationApiStatus">CONNECTING</span></header>
+<div style="padding:1.25rem 1.5rem"><div class="filter-row">
+<input type="search" id="q" placeholder="Search station, ID, address, district or locality…"/>
+<select id="dist"><option value="">All Gujarat districts</option></select>
+<select id="typ"><option value="">All station types</option></select>
+<select id="risk"><option value="">All capacity status</option><option value="high">Over 100% capacity</option><option value="med">85–100% capacity</option><option value="low">Below 85% capacity</option><option value="missing">Missing capacity/sales</option></select>
+</div><p class="status-note" id="stationDataNote">Loading 344-directory dataset…</p>
+<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table class="data" id="tbl"><thead><tr><th>Station ID</th><th>Station / address</th><th>District</th><th>Type</th><th>Capacity kg/day</th><th>30-day avg sales kg/day</th><th>Peak sales kg/day</th><th>Utilization</th><th>Data quality</th></tr></thead><tbody></tbody></table></div></div>
+<p class="status-note">Capacity, sales and utilization are synthetic estimates for hackathon demonstration. Approximate coordinates and current station operation are not independently verified. Do not treat results as official Gujarat Gas data.</p></div></div>
+<script src="js/app.js"></script><script>
+(()=>{const API=(window.CNG_API_BASE||'http://localhost:8000').replace(/\/$/,'');const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let stations=[];
+const n=v=>v===null||v===undefined||v===''?null:Number(v);const fmt=v=>v===null?'—':Math.round(v).toLocaleString();
+function render(){const q=document.getElementById('q').value.trim().toLowerCase(),d=document.getElementById('dist').value,t=document.getElementById('typ').value,r=document.getElementById('risk').value;
+const rows=stations.filter(s=>{const u=s.utilization,txt=[s.station_id,s.station_name,s.address_raw,s.city_or_locality,s.district,s.taluka].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!d||s.district===d)&&(!t||s.station_type===t)&&(!r||(r==='missing'?(s.capacity_kg_day===null||s.avg_sales_kg_day_30d===null):u!==null&&(r==='high'?u>1:r==='med'?u>=.85&&u<=1:u<.85)));});
+document.querySelector('#tbl tbody').innerHTML=rows.map(s=>{const u=s.utilization;const utilization=u===null?'No data':(u*100).toFixed(0)+'%';const tag=u===null?'data-label':u>1?'tag tag-red':u>=.85?'tag tag-amber':'tag tag-green';return '<tr><td style="font-family:ui-monospace;color:#059669;font-weight:600">'+esc(s.station_id)+'</td><td><strong>'+esc(s.station_name)+'</strong><br><small>'+esc(s.address_raw||s.city_or_locality||'Address unavailable')+'</small><br><small>'+esc(s.city_or_locality||'')+'</small></td><td>'+esc(s.district||'—')+'</td><td>'+esc(s.station_type||'Unknown')+'</td><td>'+fmt(n(s.capacity_kg_day))+'</td><td>'+fmt(n(s.avg_sales_kg_day_30d))+'</td><td>'+fmt(n(s.peak_demand_kg_day))+'</td><td><span class="'+tag+'">'+utilization+'</span></td><td><span class="data-label">Synthetic estimate</span><br><small>'+esc(s.coordinate_quality||'Coordinate quality unknown')+'</small></td></tr>';}).join('')||'<tr><td colspan="9" style="text-align:center;padding:2rem">No stations match these filters.</td></tr>';
+}
+async function init(){const status=document.getElementById('stationApiStatus'),note=document.getElementById('stationDataNote');try{const res=await fetch(API+'/api/gis/stations');const data=await res.json();if(!res.ok)throw Error(data.detail||res.status);stations=data.items||[];status.textContent=stations.length+' GUJARAT RECORDS';note.textContent=data.data_note+' Records returned: '+stations.length+'.';
+const districts=[...new Set(stations.map(s=>s.district).filter(Boolean))].sort();document.getElementById('dist').innerHTML='<option value="">All Gujarat districts ('+districts.length+')</option>'+districts.map(v=>'<option>'+esc(v)+'</option>').join('');
+const types=[...new Set(stations.map(s=>s.station_type).filter(Boolean))].sort();document.getElementById('typ').innerHTML='<option value="">All station types</option>'+types.map(v=>'<option>'+esc(v)+'</option>').join('');render();
+}catch(e){status.textContent='API / DATA UNAVAILABLE';note.textContent='Could not load Gujarat 344-station data: '+e.message+'. Confirm the three CSV files are in the repository data paths and restart FastAPI.';}}
+['q','dist','typ','risk'].forEach(id=>document.getElementById(id).addEventListener(id==='q'?'input':'change',render));init();})();
+</script></body></html>

@@ -51,7 +51,7 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         Reports
       </a>
-    </nav>
+    <a href="cost-calculator.html" class="nav-item">CNG Cost Calculator</a><a href="gas-price.html" class="nav-item">CNG Gas Price</a><a href="benefits.html" class="nav-item">Benefits of CNG</a><a href="car-care.html" class="nav-item">Car Care Tips</a></nav>
     <div class="user-block">
       <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.6rem">
         <div class="avatar" data-user-avatar>U</div>
@@ -150,6 +150,20 @@
         </div>
       </div>
 
+      <div class="grid-2" style="margin-bottom:1.25rem">
+        <div class="card">
+          <h3>Estimated capacity utilisation distribution</h3>
+          <p class="desc">344-directory target list · synthetic demand divided by synthetic capacity. Counts are estimates, not operational alerts.</p>
+          <div class="chart-box"><canvas id="capacityChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>How to read network sales</h3>
+          <p class="desc">The sales line is the sum across all stations for each day, in kg/day. It is a network-wide total, so it is larger than any single station's sales.</p>
+          <p class="desc">Use Station Explorer to view capacity, 30-day average sales, peak sales and utilisation per station. All generated values are synthetic estimates and should not be presented as actual Gujarat Gas data.</p>
+          <p class="desc">Utilisation = estimated average daily sales ÷ estimated daily capacity × 100.</p>
+        </div>
+      </div>
+
       <!-- Risk + Quick links -->
       <div class="grid-2">
         <div class="card">
@@ -184,7 +198,7 @@
       const apiBase = (window.CNG_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
       const note = document.getElementById('dashboardDataNote');
       const status = document.getElementById('dashboardApiStatus');
-      let demandChart, districtChart;
+      let demandChart, districtChart, capacityChart;
       const number = value => Number(value || 0).toLocaleString();
       async function loadDashboard() {
         try {
@@ -204,8 +218,8 @@
           if (demandChart) demandChart.destroy();
           demandChart = new Chart(document.getElementById('demandChart'), {
             type: 'line',
-            data: { labels: daily.map(row => row.date), datasets: [{ label: 'Synthetic demo sales (kg/day)', data: daily.map(row => row.sales_kg), borderColor: '#059669', backgroundColor: 'rgba(5,150,105,.08)', tension: .25, fill: true, pointRadius: 2 }] },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+            data: { labels: daily.map(row => row.date), datasets: [{ label: 'Estimated total network sales (kg/day)', data: daily.map(row => row.sales_kg), borderColor: '#059669', backgroundColor: 'rgba(5,150,105,.08)', tension: .25, fill: true, pointRadius: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'kg/day across all stations' } } } }
           });
           const districts = Object.entries(data.district_counts || {});
           if (districtChart) districtChart.destroy();
@@ -213,6 +227,13 @@
             type: 'bar',
             data: { labels: districts.map(item => item[0]), datasets: [{ label: 'Demo stations', data: districts.map(item => item[1]), backgroundColor: '#059669', borderRadius: 4 }] },
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+          });
+          const utilisation = data.stations.utilisation_buckets || {};
+          if (capacityChart) capacityChart.destroy();
+          capacityChart = new Chart(document.getElementById('capacityChart'), {
+            type: 'bar',
+            data: { labels: ['Below 85%', '85–100%', 'Over 100%', 'Missing data'], datasets: [{ label: 'Stations', data: [utilisation.below_85 || 0, utilisation.from_85_to_100 || 0, utilisation.over_100 || 0, utilisation.missing || 0], backgroundColor: ['#059669', '#d97706', '#dc2626', '#94a3b8'], borderRadius: 5 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Station count' } } } }
           });
         } catch (error) {
           status.textContent = 'API unavailable';

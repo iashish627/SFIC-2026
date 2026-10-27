@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://mt1.google.com" />
   <link rel="preconnect" href="https://mt2.google.com" />
   <style>
+    .locator-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin:.8rem 0}.locator-filters label{display:flex;flex-direction:column;gap:.35rem;font-size:.76rem}.locator-filters select,.locator-filters input{padding:.65rem;border:1px solid #cbd5e1;border-radius:8px;min-width:0}.station-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:.75rem 0}.station-card{padding:.85rem;border:1px solid #e2e8f0;border-radius:10px;background:#fff}.station-card h3{font-size:.85rem;margin:0 0 .4rem}.station-card p{font-size:.74rem;line-height:1.4;color:#64748b}.station-card button{background:#0f766e;color:#fff;border:0;border-radius:7px;padding:.45rem .6rem;cursor:pointer}@media(max-width:700px){.locator-filters,.station-cards{grid-template-columns:1fr}}
     .map-note{padding:.8rem 1rem;margin:.75rem 0;border:1px solid #d6a34d;background:#fff7e6;color:#8a5310;border-radius:10px;font-size:.78rem;line-height:1.5}
     .map-filters{display:flex;gap:.85rem;align-items:center;flex-wrap:wrap}
     .map-filters label{display:flex;gap:.35rem;align-items:center;font-size:.78rem;cursor:pointer}
@@ -50,7 +51,7 @@
       <a href="simulator.html" class="nav-item">What-if Simulator</a>
       <a href="data.html" class="nav-item">Data Center</a>
       <a href="reports.html" class="nav-item">Reports</a>
-    </nav>
+    <a href="cost-calculator.html" class="nav-item">CNG Cost Calculator</a><a href="gas-price.html" class="nav-item">CNG Gas Price</a><a href="benefits.html" class="nav-item">Benefits of CNG</a><a href="car-care.html" class="nav-item">Car Care Tips</a></nav>
     <div class="user-block"><button onclick="logout()" style="background:none;border:none;color:#94a3b8;font-size:.8rem;cursor:pointer">Sign out</button></div>
   </aside>
 
@@ -60,7 +61,7 @@
         <button onclick="toggleSidebar()" class="btn btn-ghost" style="padding:.4rem">☰</button>
         <div>
           <h1 style="font-size:1.15rem;font-weight:700">Network Map</h1>
-          <p style="font-size:.75rem;color:#64748b">Mapped Gujarat outlets only · stations without coordinates are omitted</p>
+          <p style="font-size:.75rem;color:#64748b">Station locator · district filters, station details and proximity analysis</p>
         </div>
       </div>
       <div class="map-filters">
@@ -71,6 +72,15 @@
     </header>
 
     <div style="padding:1rem 1.5rem">
+      <div class="card" style="padding:1rem;margin-bottom:.75rem">
+        <div class="locator-filters">
+          <label>District<select id="districtFilter"><option value="">All districts</option></select></label>
+          <label>City / locality<select id="localityFilter"><option value="">All localities</option></select></label>
+          <label>Search station or address<input id="stationSearch" type="search" placeholder="Name, address or station ID"/></label>
+        </div>
+        <div id="locatorCount" class="gis-help">Loading station records…</div>
+        <div id="stationCards" class="station-cards"></div>
+      </div>
       <div class="card" style="padding:.5rem">
         <div id="map"></div>
         <section class="proximity-intro" aria-labelledby="proximityTitle">
@@ -171,12 +181,19 @@
 
     function draw() {
       markerClusters.clearLayers();
+      const district = document.getElementById('districtFilter')?.value || '';
+      const locality = document.getElementById('localityFilter')?.value || '';
+      const search = (document.getElementById('stationSearch')?.value || '').trim().toLowerCase();
       const filtered = records.filter(row =>
         isInsideGujarat(Number(row.latitude), Number(row.longitude)) &&
         ['true', '1', 'yes', 'y'].includes(String(row.has_cng ?? '').trim().toLowerCase()) &&
+        (!district || String(row.district || '') === district) &&
+        (!locality || String(row.city_or_locality || row.city || row.locality || '') === locality) &&
+        (!search || [row.station_id,row.station_name,row.name,row.address_raw,row.address,row.district,row.city_or_locality].join(' ').toLowerCase().includes(search)) &&
         (!document.getElementById('riskOnly').checked || isRisk(row)) &&
         (!document.getElementById('verifiedOnly').checked || isVerified(row))
       );
+      renderStationCards(filtered);
       filtered.forEach(row => {
         const verified = isVerified(row);
         const icon = L.divIcon({
@@ -212,6 +229,20 @@
       }
     }
 
+    function populateFilter(id, values, label) {
+      const el=document.getElementById(id), old=el.value;
+      const vals=[...new Set(values.map(v=>String(v||'').trim()).filter(Boolean))].sort();
+      el.innerHTML='<option value="">'+esc(label)+'</option>'+vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+      if(vals.includes(old)) el.value=old;
+    }
+    function renderStationCards(rows) {
+      const box=document.getElementById('stationCards'); if(!box)return;
+      const sorted=[...rows].sort((a,b)=>String(a.station_name||a.name||'').localeCompare(String(b.station_name||b.name||'')));
+      document.getElementById('locatorCount').textContent=sorted.length+' matching mapped CNG record(s); not a live availability count.';
+      box.innerHTML=sorted.slice(0,12).map(r=>'<article class="station-card"><h3>'+esc(r.station_name||r.name||r.station_id)+'</h3><p>'+esc(r.address_raw||r.address||r.city_or_locality||'Address not supplied')+'</p><p><b>District:</b> '+esc(r.district||'Not supplied')+'</p><p><b>ID:</b> '+esc(r.station_id||'Not supplied')+'</p><button type="button" data-station-id="'+esc(r.station_id||'')+'">View on map</button></article>').join('');
+      if(sorted.length>12) box.insertAdjacentHTML('beforeend','<p class="gis-help">Showing first 12 of '+sorted.length+' results. Use filters to narrow the list.</p>');
+      box.querySelectorAll('[data-station-id]').forEach(b=>b.addEventListener('click',()=>{const r=records.find(x=>String(x.station_id||'')===b.dataset.stationId);if(!r)return;const p=L.latLng(Number(r.latitude),Number(r.longitude));map.setView(p,12);candidatePoint={lat:p.lat,lon:p.lng,label:String(r.station_name||r.name||r.station_id),stationId:String(r.station_id||'')};updateProximity();}));
+    }
     async function loadMapData() {
       const badge = document.getElementById('dataBadge'), note = document.getElementById('mapNote');
       badge.textContent = 'LOADING DATA';
@@ -224,6 +255,8 @@
           const lat=Number(row.latitude ?? row.lat), lon=Number(row.longitude ?? row.lon ?? row.lng);
           return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat)<=90 && Math.abs(lon)<=180;
         }).map(row => ({...row, latitude:Number(row.latitude ?? row.lat), longitude:Number(row.longitude ?? row.lon ?? row.lng)}));
+        populateFilter('districtFilter',records.map(r=>r.district),'All districts');
+        populateFilter('localityFilter',records.map(r=>r.city_or_locality||r.city||r.locality),'All localities');
         const provisional=records.filter(row=>!isVerified(row)).length;
         badge.textContent = records.length ? (provisional ? 'PROVISIONAL DATA' : 'SOURCE DATA') : 'NO STATION DATA';
         note.textContent = records.length
@@ -252,6 +285,8 @@
     document.getElementById('clearCandidate').addEventListener('click',()=>{candidatePoint=null;updateProximity();});
     document.getElementById('useMapClick').addEventListener('click',event=>{selectingCandidate=!selectingCandidate;event.currentTarget.classList.toggle('active',selectingCandidate);event.currentTarget.textContent=selectingCandidate?'Click map to place candidate…':'Select candidate on map';document.getElementById('candidateStatus').textContent=selectingCandidate?'Click a point inside Gujarat on the map.':'Candidate placement cancelled.';});
     map.on('click',event=>{if(!selectingCandidate)return;if(!isInsideGujarat(event.latlng.lat,event.latlng.lng)){document.getElementById('candidateStatus').textContent='Choose a point inside the approximate Gujarat map area.';return;}candidatePoint={lat:event.latlng.lat,lon:event.latlng.lng,label:'Custom candidate location',stationId:''};selectingCandidate=false;document.getElementById('useMapClick').classList.remove('active');document.getElementById('useMapClick').textContent='Select candidate on map';updateProximity();});
+    ['districtFilter','localityFilter'].forEach(id=>document.getElementById(id).addEventListener('change',draw));
+    document.getElementById('stationSearch').addEventListener('input',draw);
     document.getElementById('riskOnly').addEventListener('change', draw);
     document.getElementById('verifiedOnly').addEventListener('change', draw);
     loadMapData();
