@@ -13,6 +13,9 @@ STATION_CSV = ROOT / "data" / "gujarat_gas_directory_344_geocoded.csv"
 DEFAULT_CSV = STATION_CSV
 CAPACITY_CSV = ROOT / "data" / "synthetic_demo" / "station_capacity_344_synthetic.csv"
 SALES_CSV = ROOT / "data" / "synthetic_demo" / "station_daily_sales_344_synthetic.csv"
+DEMO_STATION_CSV = ROOT / "data" / "synthetic_demo" / "stations.csv"
+DEMO_CAPACITY_CSV = ROOT / "data" / "synthetic_demo" / "station_capacity.csv"
+DEMO_SALES_CSV = ROOT / "data" / "synthetic_demo" / "daily_sales.csv"
 # Keep compatibility with older placement, but never fall back to the 6,325-record public outlet dump.
 LEGACY_STATION_CSVS = [
     ROOT / "member-3-forecasting" / "data" / "gujarat_gas_directory_344_geocoded.csv",
@@ -40,14 +43,20 @@ def _selected_station_path():
     for path in LEGACY_STATION_CSVS:
         if path.exists():
             return path
+    # Safe, explicitly synthetic fallback so the hosted demo remains usable when
+    # the 344-directory source CSV has not been added to the deployment repository.
+    if DEMO_STATION_CSV.exists():
+        return DEMO_STATION_CSV
     return None
 
 def load_stations():
     path = _selected_station_path()
     if path is None or not path.exists():
         return []
-    capacities = {r.get("station_id"): r for r in _read_csv(CAPACITY_CSV)}
-    sales_rows = _read_csv(SALES_CSV)
+    capacity_path = CAPACITY_CSV if CAPACITY_CSV.exists() else DEMO_CAPACITY_CSV
+    sales_path = SALES_CSV if SALES_CSV.exists() else DEMO_SALES_CSV
+    capacities = {r.get("station_id"): r for r in _read_csv(capacity_path)}
+    sales_rows = _read_csv(sales_path)
     sales_by_station = {}
     for row in sales_rows:
         sid = row.get("station_id")
@@ -92,6 +101,8 @@ def mapped_stations():
     return [s for s in load_stations() if s.get("latitude") is not None and s.get("longitude") is not None]
 
 def data_note(stations):
+    if stations and str(stations[0].get("station_id", "")).startswith("SYN-"):
+        return ("Synthetic 8-station demo dataset is loaded. This is illustrative only and is not the 344-record Gujarat Gas directory.")
     if not stations:
         return ("Gujarat 344-station dataset not found. Put the three bundle CSVs at the documented "
                 "data/ paths; the API deliberately does not fall back to the broader public-outlet dump.")
