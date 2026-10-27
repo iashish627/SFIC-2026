@@ -1,162 +1,173 @@
 # CNG Network Intelligence
 
-**SFIC 2026 | Problem Statement PS000002**  
+**SFIC 2026 · Problem Statement PS000002**  
 **Industry partner:** Gujarat Gas Company Limited  
-**Project type:** Web-based CNG network intelligence and decision-support platform
+**Platform:** Web application · React/Vite frontend · FastAPI backend
 
-## Overview
-CNG Network Intelligence is a proposed hackathon decision-support platform combining station data, demand forecasts, geospatial analysis, and what-if scenarios. It is a prototype, not an official Gujarat Gas system, and does not claim access to Gujarat Gas internal sales or operational data.
+> **Prototype and data disclaimer:** This is a student hackathon decision-support prototype, not an official Gujarat Gas system. The 344-record station directory is a directory/locator dataset; capacity estimates and daily sales are synthetic demo data, not Gujarat Gas operational data. Forecasts and scenario outputs based on synthetic data are illustrative and are not evidence of real-world forecast accuracy or commercial site viability.
 
-## Problem We Aim to Address
-CNG demand can vary by location, time, nearby stations, travel patterns, and station capacity. The project aims to help explore station-level demand and compare network decisions using transparent assumptions.
+## Live demo
 
-## Planned Features
-- **Station explorer and map:** View station locations and available attributes.
-- **Demand forecasting:** Daily/weekly station-level estimates when suitable historical data is available.
-- **Geospatial analysis:** Explore proximity, coverage, and candidate locations.
-- **What-if simulator:** Compare against the same demand baseline:
+- **Frontend:** https://cng-network-intelligence-b82a.onrender.com
+- **Backend API:** https://cng-network-intelligence-api.onrender.com
+- **Interactive API docs:** https://cng-network-intelligence-api.onrender.com/docs
+- **Backend health:** https://cng-network-intelligence-api.onrender.com/health
+- **Data health / provenance:** https://cng-network-intelligence-api.onrender.com/api/health/data
+
+The backend has been redeployed from the `main` branch. Use the data-health endpoint to confirm the dataset currently loaded by the running service; a successful deployment alone does not prove that all 344 station records were loaded. If the API reports fewer records, treat that as a deployment/data-loading issue rather than assuming the full dataset is active.
+
+## What the prototype supports
+
+- **Station explorer and map:** Search and inspect station records with usable coordinates, district/locality information and provenance fields.
+- **Network dashboard:** Summary metrics and a network-wide daily sales series labelled as synthetic where applicable.
+- **Demand forecasting:** Baseline station/network forecasts using available demo history. Forecast accuracy has not been validated against real station sales.
+- **Geospatial analysis:** Nearby-station lookup, straight-line distance checks, and candidate-location proximity diagnostics.
+- **A/B/C decision simulator:** Compare three options against the same demand baseline:
   1. No change.
   2. Expand an existing station.
   3. Build a new station.
-- **Cannibalization estimate:** Separate potential diverted sales from net incremental demand.
 - **Demand-shock scenarios:** Explore hypothetical festival/holiday uplift with explicit assumptions.
-- **Decision support:** Show assumptions, uncertainty, data provenance, and comparisons.
+- **Scenario reports:** Run scenarios, inspect saved runs and export scenario CSV reports where supported by the API.
 
-These are planned capabilities; not all are implemented yet.
+Features and outputs depend on data availability. Candidate-site proximity is a screening signal, not proof of demand or commercial viability.
 
-## Technology Plan
-- **Frontend:** React, TypeScript, Vite
-- **Backend:** Python, FastAPI
-- **Geospatial tools:** Leaflet / React Leaflet; additional GIS tools as needed
-- **Data:** CSV for the initial prototype; database integration can be added later
+## Technology
 
-This is the intended stack, not a claim that all components are already configured.
+- **Frontend:** React, TypeScript and Vite, alongside static HTML navigation pages used by the hackathon prototype.
+- **Backend:** Python and FastAPI.
+- **Mapping:** Leaflet-based map experience.
+- **Data files:** CSV station directory and clearly labelled synthetic capacity/sales demo data.
+- **Scenario persistence:** Local SQLite in the current demo. This is not a production persistence architecture.
 
-## Repository Structure
+## Repository structure
+
 ```text
 SFIC-2026/
-├── frontend/                 # Web interface
+├── frontend/                              # Web UI, map and dashboard pages
 ├── backend/
-│   ├── modules/              # Forecasting, GIS, simulation modules
-│   └── tests/                # Backend tests
+│   ├── modules/                           # GIS, dashboard, forecasting, scenarios
+│   ├── tests/                             # Backend tests
+│   └── db/schema.sql                      # PostgreSQL/PostGIS schema starter
 ├── data/
-│   ├── raw/                  # Source data and source details
-│   ├── processed/            # Cleaned and validated data
-│   └── synthetic_demo/       # Clearly labelled synthetic data
-├── docs/                     # Architecture, data dictionary, API contracts
-├── tests/                    # Integration and end-to-end tests
-├── README.md
-└── .gitignore
+│   ├── gujarat_gas_directory_344_geocoded.csv
+│   └── synthetic_demo/
+│       ├── station_capacity_344_synthetic.csv
+│       └── station_daily_sales_344_synthetic.csv
+├── docs/                                  # Architecture, GIS integration and runbooks
+└── README.md
 ```
 
-## Team Responsibilities
-| Role | Main responsibility |
-|---|---|
-| Team leader | Coordination, architecture, contracts, integration, end-to-end checks |
-| Member 2 — Data research | Station dataset, source tracking, validation, data dictionary |
-| Member 3 — Forecasting | Forecast baselines, validation, forecast outputs |
-| Member 4 — GIS | Coordinates, proximity/coverage analysis, candidate locations |
-| Member 5 — Simulation | A/B/C scenarios, demand shocks, capacity checks, cannibalization assumptions |
-| Member 6 — Backend | FastAPI endpoints and Python module integration |
-| Member 7 — Frontend | Dashboard, map, charts, simulator, API connection |
+## Data inventory and provenance
 
-## Data Quality and Responsible Use
-- Public station directories can seed a station master, but coordinates, operator, and operating status should be checked.
-- A station directory is **not** historical sales data.
-- Do not invent Gujarat Gas internal sales, capacity, supply allocation, outages, queues, or company targets.
-- Distinguish observed, externally sourced, inferred, forecast, hypothetical, and synthetic values.
-- Synthetic data demonstrates software behaviour only; it does not establish real forecast accuracy or prove a site is suitable.
-- Retain source URLs, retrieval dates, units, and transformation notes.
-- Never commit credentials, API keys, personal data, or confidential company data.
+| File | Purpose | Data status |
+|---|---|---|
+| `data/gujarat_gas_directory_344_geocoded.csv` | 344-record Gujarat Gas directory target list for locator/GIS integration | Directory records; some coordinates are approximate |
+| `data/synthetic_demo/station_capacity_344_synthetic.csv` | Station-wise capacity estimates for demo integration | **Synthetic** |
+| `data/synthetic_demo/station_daily_sales_344_synthetic.csv` | 90 days of station-wise daily sales demo history | **Synthetic** |
 
-## Core Metric Definitions
-- **Capacity utilisation** = forecast demand / effective capacity, with consistent units and periods.
-- **Estimated net incremental demand** = estimated new-site sales − estimated demand diverted from existing stations.
-- **Forecast evaluation** should use a time-based holdout and metrics such as MAE and WAPE when actual historical observations exist.
-- Scenario A, B, and C should use the same baseline and disclose assumptions.
+- The 344-record directory is the target station list for this workflow. Do not merge the separate 1,510-outlet flagged dataset into this station locator.
+- 328 coordinates are district/locality-level approximations, not exact station pins. Verify locations before relying on them for site-level decisions.
+- A station directory is not historical sales data.
+- Do not present synthetic capacity or sales as observed company data.
+- No station-level CNG prices are included without a reliable dated source.
+- Preserve source URLs, retrieval dates, units, transformation notes and verification status when updating datasets.
 
-Metrics are only as reliable as their input data and assumptions.
+## Key API endpoints
 
-## Station Locator and Network Map / GIS Feature
+Base URL for the hosted API: `https://cng-network-intelligence-api.onrender.com`
 
-The Network Map is a Leaflet-based station-locator experience inspired by public CNG locator pages: district and locality filters, station search/cards, map selection, and proximity analysis.
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Service health |
+| GET | `/api/health/data` | Loaded-data health and provenance |
+| GET | `/api/dashboard/summary` | Dashboard metrics and daily sales series |
+| GET | `/api/gis/stations` | Station records with valid coordinates |
+| GET | `/api/gis/stations/{station_id}/nearby` | Nearby records by straight-line distance |
+| GET | `/api/gis/candidate-analysis?latitude=22.3&longitude=72.5&radii_km=5,10,20` | Candidate-site proximity diagnostics |
+| GET | `/api/forecast/stations` | Stations available for forecasting |
+| GET | `/api/forecast/station/{station_id}?days=14&model=seasonal_naive` | Station forecast |
+| GET | `/api/forecast/weekly/{station_id}` | Weekly station forecast |
+| GET | `/api/forecast/evaluate/{station_id}` | Forecast evaluation endpoint |
+| GET | `/api/forecast/network` | Network-level forecast |
+| GET | `/api/simulator/demo-inputs` | Demo inputs for the simulator |
+| POST | `/api/simulator/run` | Run A/B/C simulator |
+| POST | `/api/scenarios/run` | Run and save a scenario |
+| GET | `/api/scenarios` | List saved scenarios |
+| GET | `/api/scenarios/{scenario_id}` | Scenario details |
+| GET | `/api/scenarios/{scenario_id}/report.csv` | Download scenario report |
 
-- Locator filters support district, city/locality, and free-text station/address search. Station cards can focus the map on a selected result.
-- The 5 km, 10 km, and 20 km radius controls support preliminary proximity screening. Distances are straight-line distances, not road distances.
-- Only records with valid latitude/longitude inside the approximate Gujarat display outline are plotted; records without usable coordinates are not plotted.
-- Groups nearby markers into clusters. Marker colours distinguish verified operator records from provisional candidates.
-- Station popups show available station identifiers, district, coordinates, source and verification status.
-- Optional filters include risk stations and verified operator stations. Risk filtering depends on utilization fields being present in the data.
-- The map's Gujarat outline is an approximate display filter, not an authoritative administrative boundary. Some edge areas may be omitted; do not use it as a legal/state-border GIS layer.
-- The number shown on the map is the number of mapped records, not the total number of stations in Gujarat or the total directory size.
+For the complete request/response schemas, open the interactive [FastAPI documentation](https://cng-network-intelligence-api.onrender.com/docs).
 
-### Run locally
+## Run locally
 
-From the repository root, install backend dependencies and start FastAPI:
+From the repository root, install backend dependencies and start the API:
 
 ```bash
 python -m pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload --port 8000
 ```
 
-In a second terminal, serve the static frontend:
+In a second terminal, serve the frontend pages:
 
 ```bash
 python -m http.server 5173 --directory frontend
 ```
 
-Open `http://localhost:5173/map.html`. The map requests `http://localhost:8000/api/gis/stations` by default. Keep the backend running. If using another API host, configure `window.CNG_GIS_API_BASE` before the map script loads.
+Open `http://localhost:5173/map.html`. The map uses `http://localhost:8000/api/gis/stations` by default. Keep the backend running. If using a different API host, configure `window.CNG_GIS_API_BASE` before the map script loads, where supported by the page.
 
-### GIS data source priority
+To build the Vite/React frontend:
 
-The GIS backend selects the first available default file in this order:
-1. `data/gujarat_gas_directory_344_geocoded.csv` (344-record Gujarat Gas directory target list)
-2. `member-3-forecasting/data/gujarat_gas_directory_344_geocoded.csv`
-3. `member-3-forecasting/data/gujarat_gas_directory_344_records.csv`
-4. `data/processed/stations.csv` (broader public outlet mapping; provisional fallback)
+```bash
+cd frontend
+npm install
+npm run build
+```
 
-Override this with the `CNG_STATIONS_CSV` environment variable. Only rows with parseable latitude and longitude are returned by `GET /api/gis/stations`. A companion Gujarat 344-station synthetic data bundle has been generated for integration. It includes a geocoded directory, station-wise synthetic capacity estimates, and 90 days of synthetic daily sales for all 344 station IDs; place its files at the paths documented in the bundle README. 328 coordinates are district/locality-level approximations, not exact station pins. Every sales and capacity value is synthetic and must be displayed as an estimate—not Gujarat Gas operational data. No station-level CNG prices are included without a reliable dated source. See [GIS integration](docs/GIS_INTEGRATION.md) and the [GIS runbook](docs/GIS_RUNBOOK.md) for API details, data provenance, geocoding and troubleshooting.
+## GIS behaviour and limitations
 
-## Dashboard charts and reference documents
+- The locator supports district/locality and free-text search where the relevant fields are available.
+- The 5 km, 10 km and 20 km controls use straight-line distance, not road distance.
+- Only records with parseable latitude/longitude are returned/plotted.
+- Nearby markers may be clustered; popups show available station identifiers, district, coordinates and provenance/verification details.
+- The Gujarat outline is an approximate display filter, not an authoritative administrative boundary; edge locations may be omitted.
+- The number shown on the map represents mapped records, not necessarily the total number of operational CNG stations in Gujarat.
+- Candidate analysis is proximity screening, not a validated commercial ranking.
 
-- Network sales chart is a **network-wide daily total** in kg/day, summed across the 344-directory target list; it is not an individual station value.
-- Capacity utilisation chart groups the same 344 records into below 85%, 85–100%, over 100%, and missing-data buckets, calculated from synthetic average sales and capacity estimates.
-- The Data Center includes the supplied historical Gujarat CNG DODO reference PDF under `frontend/downloads/`. The source document is dated 9 July 2019. Its historical fees and candidate locations are not current offers, and it does not provide station-wise sales or dispensing capacity.
-- Site Selection performs straight-line proximity screening against the configured 344-directory records. It is not a validated commercial site ranking; approximate coordinates can change the radius counts.
+## Forecasting and simulator assumptions
 
-## Project Status
-**Stage:** Integrated hackathon prototype. The dashboard, GIS map, station explorer, proximity analysis, baseline forecast, A/B/C demand-shock simulator, data provenance view and API-backed CSV exports are wired to the FastAPI backend. GitHub Actions validates backend tests and the Vite frontend build. This is not an operational Gujarat Gas system: sales/capacity demos are synthetic, public GIS records may be provisional, candidate-site results are proximity diagnostics only, forecast accuracy has not been holdout-validated, and uploads do not yet persist data.
-
----
-Built as a student hackathon prototype for SFIC 2026.
-
-
-## Integrated API endpoints
-
-- `GET /health` — backend health.
-- `GET /api/dashboard/summary` — dashboard metrics and daily sales series with synthetic provenance.
-- `GET /api/gis/stations` — configured coordinate-valid station/outlet records.
-- `GET /api/gis/stations/{station_id}/nearby` — nearby records by straight-line distance.
-- `GET /api/gis/candidate-analysis?latitude=22.3&longitude=72.5&radii_km=5,10,20` — proximity diagnostics, not demand-based site ranking.
-- `GET /api/forecast/stations` and `GET /api/forecast/station/{station_id}?days=14&model=seasonal_naive` — synthetic-history forecast baselines.
-- `GET /api/simulator/demo-inputs` and `POST /api/simulator/run` — A/B/C expansion and demand-shock simulation.
+- Baseline forecasts are illustrative when generated from synthetic demo history.
+- Forecast evaluation on synthetic data does not establish accuracy on real station sales.
+- A demand-shock scenario is hypothetical. Make the assumed uplift, duration and any capacity constraints visible in the result.
+- Compare no change, existing-station expansion and new-station construction using the same demand baseline.
+- Estimate net incremental demand separately from demand diverted from nearby existing stations.
+- Use time-based holdout evaluation and metrics such as MAE/WAPE once suitable real historical observations are available.
 
 ## Validation
 
-From the repository root, install `backend/requirements.txt` and run:
+From the repository root:
 
 ```bash
 python -m pytest backend/tests -q
 ```
 
-For the static HTML prototype, serve the `frontend/` directory on port 5173 and run FastAPI on port 8000. The Vite/React source in `frontend/src/` is also built by CI; the current hackathon navigation pages are static HTML and call the same API directly.
+The frontend build can be checked with `npm run build` from `frontend/`. Do not describe CI as passing unless the latest workflow run is green.
 
+## Production-readiness gaps
 
-## Production database schema starter
+Before any operational use, the project still needs verified station coordinates and operator/status attributes, real authorised station-level sales/capacity data, forecast backtesting, validated business assumptions, managed persistent storage, authentication/authorization, audit logging, reviewed database migrations, and deployment/data-loading monitoring. `backend/db/schema.sql` is a PostgreSQL/PostGIS schema starter; it is not automatically applied. Saved scenarios currently use local SQLite demo persistence and may not survive service restarts or scale across instances.
 
-`backend/db/schema.sql` documents a PostgreSQL/PostGIS target schema for station master, sales, effective-dated capacity, supply constraints, source provenance, candidate sites, forecasts, model evaluations, scenario runs, station impacts, site rankings and audit logs. It is a migration starter only and is **not automatically applied** by the hackathon demo. The running demo stores saved scenarios in local SQLite; before production, replace that adapter with managed PostgreSQL, apply reviewed migrations, and add server-side authentication/authorization and audit enforcement.
+## Team responsibilities
 
+| Role | Responsibility |
+|---|---|
+| Team leader | Coordination, architecture, integration and end-to-end checks |
+| Member 2 — Data research | Station data, source tracking, validation and data dictionary |
+| Member 3 — Forecasting | Forecast baselines, validation and forecast outputs |
+| Member 4 — GIS | Coordinates, proximity/coverage analysis and candidate locations |
+| Member 5 — Simulation | A/B/C scenarios, demand shocks, capacity and cannibalization assumptions |
+| Backend | FastAPI endpoints and Python module integration |
+| Frontend | Dashboard, map, charts, simulator and API connection |
 
-## Gujarat-wide feature scope
+---
 
-The target station list is the **344-record Gujarat Gas directory only**; do not merge the separate 1,510-outlet flagged dataset into the station locator. The planned Gujarat-wide journey is: search by district/locality/name/address; inspect station details and 5/10/20 km proximity; view demand forecasts up to 30 days; compare demand with effective-capacity estimates; apply festival/holiday demand shocks; screen candidate sites using proximity, demand and coverage gaps; compare no change, existing-station expansion and new-station construction on the same demand baseline; and export district/station-level reports with assumptions and data-quality labels. CNG prices should appear only with operator/source and effective date. Proximity is a screening signal, not proof of commercial viability.
+Built as a student hackathon prototype for SFIC 2026.
