@@ -1,5 +1,4 @@
 """Composable FastAPI entrypoint for the shared CNG Network Intelligence backend."""
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.modules.gis.router import router as gis_router
@@ -10,9 +9,6 @@ from backend.modules.scenarios.router import router as scenarios_router
 from backend.modules.data_quality.router import router as data_quality_router
 
 app = FastAPI(title="CNG Network Intelligence API", version="0.3.0")
-
-# Public hackathon demo API: allow requests from the deployed static site and
-# local development origins. No cookies or credentialed requests are used.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,7 +16,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
-
 app.include_router(gis_router)
 app.include_router(dashboard_router)
 app.include_router(simulator_router)
