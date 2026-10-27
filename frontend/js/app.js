@@ -1,3 +1,8 @@
+/* Production API base for the deployed Render backend. */
+window.CNG_API_BASE = 'https://cng-network-intelligence-api.onrender.com';
+window.CNG_API_BASE_URL = window.CNG_API_BASE;
+window.CNG_GIS_API_BASE = window.CNG_API_BASE;
+
 /* Auth guard */
 (function () {
   const path = window.location.pathname;
