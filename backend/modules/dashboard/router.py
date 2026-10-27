@@ -20,6 +20,8 @@ def dashboard_summary():
         # Station rows carry station-level 30-day summaries; detailed series is read separately.
         pass
     detail_path = ROOT / "data" / "synthetic_demo" / "station_daily_sales_344_synthetic.csv"
+    if not detail_path.exists():
+        detail_path = ROOT / "data" / "synthetic_demo" / "daily_sales.csv"
     rows = read_csv(detail_path)
     daily = defaultdict(float)
     valid = []
@@ -53,7 +55,7 @@ def dashboard_summary():
     daily_rows = [{"date": d, "sales_kg": round(v, 1)} for d, v in sorted(daily.items())]
     return {
       "provenance": "synthetic_demo",
-      "data_note": "Gujarat 344-directory target list. Sales and capacity are synthetic estimates, not Gujarat Gas operational data.",
+      "data_note": ("Synthetic 8-station demo dataset is loaded; this is not the 344-record directory and is not Gujarat Gas operational data." if stations and str(stations[0].get("station_id", "")).startswith("SYN-") else "Gujarat 344-directory target list. Sales and capacity are synthetic estimates, not Gujarat Gas operational data."),
       "stations": {"demo_total": len(stations), "with_capacity": capacities, "with_valid_coordinates": located, "gis_records_loaded": len(stations), "district_count": len(district_counts), "utilisation_buckets": utilisation_buckets},
       "sales": {"valid_record_count": len(valid), "daily_totals": daily_rows[-42:], "daily_total_unit": "kg/day across all stations", "date_min": min((d.isoformat() for d,_,_ in valid), default=None), "date_max": max((d.isoformat() for d,_,_ in valid), default=None)},
       "district_counts": dict(sorted(district_counts.items()))
