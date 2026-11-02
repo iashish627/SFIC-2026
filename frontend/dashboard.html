@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Overview · CNG Network Intelligence</title>
   <link rel="stylesheet" href="css/app.css" />
+  <style>.sidebar .logo-mark{width:48px;height:48px;min-width:48px;border-radius:14px;background:linear-gradient(145deg,#082f49,#064e3b);border:1px solid rgba(103,232,249,.35);box-shadow:0 0 18px rgba(16,185,129,.22);padding:4px}.sidebar .logo-mark svg{width:100%;height:100%;display:block}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -12,7 +13,16 @@
 
   <aside id="sidebar" class="sidebar">
     <div class="logo">
-      <div class="logo-mark">CN</div>
+      <div class="logo-mark" aria-label="CNG Network Intelligence logo">
+        <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+          <defs><linearGradient id="cngFlame" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#10b981"/><stop offset=".55" stop-color="#22d3ee"/><stop offset="1" stop-color="#a3e635"/></linearGradient></defs>
+          <path d="M30 5C29 17 12 23 12 39c0 11 8 19 19 19 13 0 22-10 20-22-1-8-7-13-11-19 0 9-5 12-8 15 1-10 0-18-2-27Z" fill="url(#cngFlame)"/>
+          <path d="M25 30h17v22H25z" rx="3" fill="#071827" stroke="#d1fae5" stroke-width="2"/>
+          <path d="M42 35h5v10h-5M29 35h9M29 41h9" fill="none" stroke="#d1fae5" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="11" cy="12" r="2.5" fill="#67e8f9"/><circle cx="55" cy="12" r="2.5" fill="#67e8f9"/><circle cx="54" cy="53" r="2.5" fill="#67e8f9"/>
+          <path d="M13 14l8 7M53 14l-5 7M51 51l-5-2" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
       <div>
         <div style="font-weight:600;font-size:.9rem;line-height:1.2">CNG Network<br>Intelligence</div>
         <div style="font-size:.65rem;color:#64748b;margin-top:2px">SFIC 2026 · PS000002</div>
