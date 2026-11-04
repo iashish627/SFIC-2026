@@ -28,12 +28,7 @@ The backend is an API service. Opening the base URL (`/`) in a browser may retur
 
 Use these endpoints to verify the service:
 
-- `/health` for backend health.
-- `/docs` for interactive FastAPI documentation.
-- `/api/health/data` for loaded-data status and provenance.
-- `/api/ev-scenarios/presets` for the EV scenario configuration and market-context metadata.
-
-A deployment should be considered fully verified only after the relevant endpoints return successful responses.
+Use the deployed application interface and internal service monitoring to verify availability. A deployment should be considered fully verified only after the application's core workflows respond successfully.
 
 ## Business problem and product approach
 
@@ -78,10 +73,6 @@ The external market context is sourced from the [IBEF Electric Vehicle Industry 
 
 **Important:** These national market indicators justify considering EV transition risk, but they do **not** establish a fixed demand-loss percentage for an individual Gujarat CNG station. The planner therefore labels its displacement rates as hypothetical scenario assumptions.
 
-API endpoints:
-
-- `GET /api/ev-scenarios/presets` — available scenarios and market-context metadata.
-- `POST /api/ev-scenarios/run` — run a hypothetical long-term EV transition scenario.
 
 ### 6. Scenario history and reports
 Scenario endpoints support running scenarios, listing saved runs, retrieving scenario details and exporting CSV reports where available. The current demo uses local SQLite persistence; it is not a managed, production-grade shared database.
