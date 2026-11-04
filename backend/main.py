@@ -7,8 +7,9 @@ from backend.modules.simulation.router import router as simulator_router
 from backend.modules.forecasting.router import router as forecasting_router
 from backend.modules.scenarios.router import router as scenarios_router
 from backend.modules.data_quality.router import router as data_quality_router
+from backend.modules.ev_scenarios.router import router as ev_scenarios_router
 
-app = FastAPI(title="CNG Network Intelligence API", version="0.3.0")
+app = FastAPI(title="CNG Network Intelligence API", version="0.4.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,6 +23,7 @@ app.include_router(simulator_router)
 app.include_router(forecasting_router)
 app.include_router(scenarios_router)
 app.include_router(data_quality_router)
+app.include_router(ev_scenarios_router)
 
 @app.get("/health")
 def health():
