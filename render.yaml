@@ -11,3 +11,5 @@ services:
         value: 3.11.9
       - key: FRONTEND_ORIGIN
         sync: false
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
