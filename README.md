@@ -186,6 +186,18 @@ npm install
 npm run build
 ```
 
+## Security and deployment notes
+
+The hosted prototype applies basic API hardening appropriate to a public hackathon demo:
+
+- CORS is restricted to the configured frontend origin instead of allowing every website.
+- API responses include security headers such as `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`.
+- Requests declaring bodies larger than 1 MB are rejected by the application middleware.
+- The repository ignores common private-key and local secret files.
+- Demo scenario persistence uses local SQLite and contains no authentication or user accounts.
+
+This is **not a production security certification**. Before operational use, add managed authentication and authorization, rate limiting at the edge/application layer, centralized secret management, managed persistent storage, dependency vulnerability scanning, audit logging and formal security testing.
+
 ## GIS and modelling assumptions
 
 - Proximity controls use straight-line distance, not road-network distance or travel time.
