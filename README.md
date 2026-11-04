@@ -57,10 +57,23 @@ The simulator is intended to compare three alternatives using a common demand ba
 
 Demand-shock scenarios can represent hypothetical festival/holiday uplift. The business analysis should distinguish net new demand from demand diverted away from nearby existing stations (cannibalization), and should expose assumptions and capacity constraints rather than presenting estimates as observed facts.
 
-### 5. Scenario history and reports
+### 5. EV transition scenarios
+
+The project includes an **EV Transition Scenario Planner** for stress-testing long-term CNG demand and expansion decisions. It uses explicit, user-adjustable assumptions rather than claiming to predict EV adoption or station-level CNG displacement.
+
+The external market context is sourced from the [IBEF Electric Vehicle Industry page](https://www.ibef.org/industry/electric-vehicle). IBEF reports FY26 EV sales of 2.66 million units, 8.62% penetration of total automotive sales, nearly 87% of EV volumes from two- and three-wheelers, and 29,151 public charging stations as of December 2025.
+
+**Important:** These national market indicators justify considering EV transition risk, but they do **not** establish a fixed demand-loss percentage for an individual Gujarat CNG station. The planner therefore labels its displacement rates as hypothetical scenario assumptions.
+
+API endpoints:
+
+- `GET /api/ev-scenarios/presets` — available scenarios and market-context metadata.
+- `POST /api/ev-scenarios/run` — run a hypothetical long-term EV transition scenario.
+
+### 6. Scenario history and reports
 Scenario endpoints support running scenarios, listing saved runs, retrieving scenario details and exporting CSV reports where available. The current demo uses local SQLite persistence; it is not a managed, production-grade shared database.
 
-### 6. Supporting CNG information pages
+### 7. Supporting CNG information pages
 The frontend also includes supplementary CNG-oriented information pages (such as CNG benefits, gas-price information, cost calculation and car-care content). These are supporting user-facing utilities/information, not the core station-demand forecasting or network-expansion decision engine. Any price or cost figures should be shown with a source, date and clear assumptions.
 
 ## Technology stack
@@ -126,7 +139,7 @@ Hosted base URL: `https://cng-network-intelligence-api.onrender.com`
 | GET | `/api/forecast/network` | Network-level forecast |
 | GET | `/api/simulator/demo-inputs` | Simulator demo inputs |
 | POST | `/api/simulator/run` | Run A/B/C simulator |
-| POST | `/api/scenarios/run` | Run and save a scenario |
+| POST | `/api/scenarios/run` | Run and save a scenario |\n| GET | `/api/ev-scenarios/presets` | EV scenario presets and external market context |\n| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |
 | GET | `/api/scenarios` | List saved scenarios |
 | GET | `/api/scenarios/{scenario_id}` | Retrieve a scenario |
 | GET | `/api/scenarios/{scenario_id}/report.csv` | Export scenario report |
