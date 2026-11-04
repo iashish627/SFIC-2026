@@ -139,7 +139,9 @@ Hosted base URL: `https://cng-network-intelligence-api.onrender.com`
 | GET | `/api/forecast/network` | Network-level forecast |
 | GET | `/api/simulator/demo-inputs` | Simulator demo inputs |
 | POST | `/api/simulator/run` | Run A/B/C simulator |
-| POST | `/api/scenarios/run` | Run and save a scenario |\n| GET | `/api/ev-scenarios/presets` | EV scenario presets and external market context |\n| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |
+| POST | `/api/scenarios/run` | Run and save a scenario |
+| GET | `/api/ev-scenarios/presets` | EV scenario presets and market context |
+| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |\n| GET | `/api/ev-scenarios/presets` | EV scenario presets and external market context |\n| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |
 | GET | `/api/scenarios` | List saved scenarios |
 | GET | `/api/scenarios/{scenario_id}` | Retrieve a scenario |
 | GET | `/api/scenarios/{scenario_id}/report.csv` | Export scenario report |
