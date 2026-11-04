@@ -22,6 +22,19 @@ The core workflow is:
 
 A successful Render deployment confirms that a deployment is live; it does not by itself confirm that every expected station record is loaded. Check the data-health endpoint and the station API before reporting a live station count.
 
+### Backend URL behavior
+
+The backend is an API service. Opening the base URL (`/`) in a browser may return `{"detail":"Not Found"}` because no root page is defined. This is expected behavior and does **not** by itself mean the backend is offline.
+
+Use these endpoints to verify the service:
+
+- `/health` for backend health.
+- `/docs` for interactive FastAPI documentation.
+- `/api/health/data` for loaded-data status and provenance.
+- `/api/ev-scenarios/presets` for the EV scenario configuration and market-context metadata.
+
+A deployment should be considered fully verified only after the relevant endpoints return successful responses.
+
 ## Business problem and product approach
 
 CNG network expansion decisions require more than a map of existing stations. A decision-maker needs to understand where demand may grow, whether existing infrastructure can serve it, and whether a new station would create genuinely incremental demand or mainly divert sales from nearby stations.
@@ -140,8 +153,8 @@ Hosted base URL: `https://cng-network-intelligence-api.onrender.com`
 | GET | `/api/simulator/demo-inputs` | Simulator demo inputs |
 | POST | `/api/simulator/run` | Run A/B/C simulator |
 | POST | `/api/scenarios/run` | Run and save a scenario |
-| GET | `/api/ev-scenarios/presets` | EV scenario presets and market context |
-| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |\n| GET | `/api/ev-scenarios/presets` | EV scenario presets and external market context |\n| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |
+| GET | `/api/ev-scenarios/presets` | EV scenario presets and external market context |
+| POST | `/api/ev-scenarios/run` | Run assumption-based EV transition scenario |
 | GET | `/api/scenarios` | List saved scenarios |
 | GET | `/api/scenarios/{scenario_id}` | Retrieve a scenario |
 | GET | `/api/scenarios/{scenario_id}/report.csv` | Export scenario report |
