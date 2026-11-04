@@ -147,3 +147,10 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Security-sensitive local files
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
