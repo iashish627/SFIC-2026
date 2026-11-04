@@ -1,1 +1,1 @@
-"""EV transition scenario planning module."""\n
+"""EV transition scenario planning module."""
