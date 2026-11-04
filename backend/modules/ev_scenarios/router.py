@@ -21,6 +21,8 @@ class EVScenarioRequest(BaseModel):
 
 DEFAULT_DISPLACEMENT = {"baseline": 0.0, "moderate": 4.0, "accelerated": 9.0}
 
+MARKET_CONTEXT = {"source_name": "IBEF Electric Vehicle Industry in India", "source_url": "https://www.ibef.org/industry/electric-vehicle", "source_last_checked": "2026-11-04", "facts": ["FY26 EV sales: 2.66 million units; 8.62% penetration of total automotive sales.", "Two- and three-wheelers represented nearly 87% of FY26 EV volumes.", "IBEF reports 29,151 public charging stations as of December 2025."], "interpretation": "These market indicators establish EV transition relevance but do not quantify station-level CNG displacement in Gujarat."}
+
 MARKET_CONTEXT = {
     "source_name": "India Brand Equity Foundation (IBEF) — Electric Vehicle Industry in India",
     "source_url": "https://www.ibef.org/industry/electric-vehicle",
@@ -41,6 +43,7 @@ def presets():
             {"id":"moderate","label":"Moderate EV Adoption","default_annual_ev_displacement_pct":4.0},
             {"id":"accelerated","label":"Accelerated Electrification","default_annual_ev_displacement_pct":9.0},
         ],
+        "market_context": MARKET_CONTEXT,
         "market_context": MARKET_CONTEXT,
         "warning":"Scenario assumptions are illustrative and user-adjustable. They are not a forecast of actual EV adoption or Gujarat Gas sales."
     }
@@ -83,6 +86,7 @@ def run_ev_scenario(request: EVScenarioRequest):
             "ev_adjusted_net_incremental_demand_kg":round(ev_adjusted_incremental,2),
             "decision":decision,
         },
+        "market_context": MARKET_CONTEXT,
         "market_context": MARKET_CONTEXT,
         "warning":"Scenario-based planning output only. Results depend on selected assumptions and are not a prediction of actual EV adoption, CNG sales or site profitability."
     }
