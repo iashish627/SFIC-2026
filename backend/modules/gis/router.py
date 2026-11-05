@@ -184,3 +184,39 @@ def rank_candidates(request: CandidateRankRequest):
     for i,row in enumerate(ranked,1): row["rank"]=i
     return {"candidates":ranked,"method":"transparent_spacing_screen","data_note":data_note(stations),
         "warning":"Ranking uses only user-supplied coordinates and straight-line spacing. It does not establish demand, traffic, land feasibility, catchment or financial viability."}
+
+
+@router.post("/rank-candidates-v2")
+def rank_candidates_multifactor(request: CandidateRankRequest):
+    """Transparent multi-factor screening: spacing + nearby capacity pressure + local gap."""
+    stations=mapped_stations()
+    if not stations:
+        raise HTTPException(status_code=404, detail="No mapped station records available")
+    rows=[]
+    for c in request.candidates:
+        origin={"station_id":"__candidate__","latitude":c.latitude,"longitude":c.longitude}
+        analysis=nearby_stations(origin,stations,(request.minimum_spacing_km,10.0,20.0))
+        nearby=analysis["nearby"]
+        nearest_distance=float(nearby[0]["distance_km"]) if nearby else 100.0
+        close=[x for x in nearby if float(x["distance_km"]) < request.minimum_spacing_km]
+        local=[x for x in nearby if float(x["distance_km"]) <= 20.0]
+        spacing_score=min(100.0, nearest_distance/request.minimum_spacing_km*50.0)
+        close_penalty=min(100.0, len(close)*35.0)
+        utils=[float(x.get("utilization") or 0) for x in local if x.get("utilization") is not None]
+        pressure=(sum(utils)/len(utils)*100) if utils else 0.0
+        pressure_score=min(100.0, pressure)
+        gap_score=min(100.0, max(0.0, 100.0-len(local)*10.0))
+        score=round(max(0.0, 0.40*spacing_score + 0.30*pressure_score + 0.30*gap_score - 0.20*close_penalty),1)
+        status="STRONG_SCREENING_CANDIDATE" if score>=65 and not close else "REVIEW"
+        rows.append({"name":c.name,"latitude":c.latitude,"longitude":c.longitude,
+            "screening_score":score,"status":status,"nearest_station_distance_km":round(nearest_distance,2),
+            "stations_within_minimum_spacing":len(close),"stations_within_20km":len(local),
+            "factors":{"spacing_score":round(spacing_score,1),"nearby_capacity_pressure_score":round(pressure_score,1),
+                       "network_gap_score":round(gap_score,1),"close_station_penalty":round(close_penalty,1)}})
+    rows.sort(key=lambda x:x["screening_score"],reverse=True)
+    for i,row in enumerate(rows,1): row["rank"]=i
+    return {"candidates":rows,"minimum_spacing_km":request.minimum_spacing_km,
+            "method":"transparent_multi_factor_screening_v1",
+            "weights":{"spacing":0.40,"nearby_capacity_pressure":0.30,"network_gap":0.30},
+            "data_note":data_note(stations),
+            "warning":"Ranking is a prototype screening score using synthetic/approximate station data, straight-line distance and local capacity-pressure proxies. It is not a verified demand, traffic, land, road-access or financial viability model."}
