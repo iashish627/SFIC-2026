@@ -12,6 +12,20 @@ The core workflow is:
 
 > **Prototype disclaimer:** This is a student hackathon prototype, not an official Gujarat Gas system or an operational planning tool. The station directory is a research/locator dataset, not a verified live register of operating stations. Capacity and daily-sales files in the demo are synthetic. Forecasts, scenario outputs, cost estimates and site-screening results must be treated as illustrative unless supported by verified operational and commercial data.
 
+## Core features
+
+CNG Network Intelligence is built around **seven core decision-support features** for station-level demand planning and CNG network expansion:
+
+1. **Station-Level Sales Forecasting** — Forecast demand at individual stations and at the network level to support monthly and longer-term planning.
+2. **Sales Growth & Sales Targets** — Compare forecast baselines with configurable growth targets and identify the sales gap that planning actions need to address.
+3. **Peak Demand, Queue & Stock-out Reduction** — Run a 24-hour capacity-constrained scenario to identify peak-pressure hours, potential service pressure and stock-out risk under configurable demand scenarios.
+4. **Ranked New Station Locations** — Screen and rank user-supplied candidate locations using transparent multi-factor scoring based on minimum spacing, nearby capacity pressure and network-gap indicators.
+5. **Minimum Spacing & Cannibalization Analysis** — Examine nearby stations and configurable spacing thresholds to flag potential network overlap and possible sales diversion.
+6. **EV Transition Scenarios** — Stress-test long-term CNG demand and expansion choices under adjustable EV adoption assumptions.
+7. **Sales & Network Planner** — Bring sales targets, demand outlook, operational pressure and location screening into a single planning workflow.
+
+> **Prototype note:** Forecasts and operational/location outputs use demo data and explicit assumptions. Queue pressure is a capacity-excess indicator rather than a measured customer wait-time prediction, and candidate rankings are screening results rather than final commercial site recommendations.
+
 ## Live application
 
 - **Frontend:** https://cng-network-intelligence-b82a.onrender.com
@@ -24,11 +38,7 @@ A successful Render deployment confirms that a deployment is live; it does not b
 
 ### Backend URL behavior
 
-The backend is an API service. Opening the base URL (`/`) in a browser may return `{"detail":"Not Found"}` because no root page is defined. This is expected behavior and does **not** by itself mean the backend is offline.
-
-Use these endpoints to verify the service:
-
-Use the deployed application interface and internal service monitoring to verify availability. A deployment should be considered fully verified only after the application's core workflows respond successfully.
+The backend base URL (`/`) returns a lightweight service-status response. Use `/health` for service health and `/docs` for interactive API documentation. A deployment should be considered fully verified only after the application's core workflows respond successfully.
 
 ## Business problem and product approach
 
@@ -65,7 +75,23 @@ The simulator is intended to compare three alternatives using a common demand ba
 
 Demand-shock scenarios can represent hypothetical festival/holiday uplift. The business analysis should distinguish net new demand from demand diverted away from nearby existing stations (cannibalization), and should expose assumptions and capacity constraints rather than presenting estimates as observed facts.
 
-### 5. EV transition scenarios
+### 5. Sales growth & sales targets
+
+The Sales & Network Planner supports configurable sales-growth targets and planning horizons. It compares the forecast baseline with the selected target and exposes the gap that planning actions need to address.
+
+### 6. Peak demand, queue & stock-out reduction
+
+The operational scenario module models a 24-hour demand profile against station service capacity. It identifies peak-pressure periods, capacity excess, estimated unserved demand and stock-out risk under a configurable peak-demand multiplier.
+
+The hourly profile and capacity inputs are prototype assumptions based on the available demo data. The output is a planning scenario, not a measured queue-length or customer waiting-time system.
+
+### 7. Ranked new station locations
+
+Candidate locations can be submitted for transparent multi-factor screening. The current prototype considers minimum spacing from existing stations, nearby station capacity pressure, network-gap indicators and penalties for candidates that are too close to existing stations.
+
+The result includes a rank, screening score and factor-level diagnostics. It is not a substitute for verified traffic, land, road-access, catchment or financial feasibility analysis.
+
+### 8. EV transition scenarios
 
 The project includes an **EV Transition Scenario Planner** for stress-testing long-term CNG demand and expansion decisions. It uses explicit, user-adjustable assumptions rather than claiming to predict EV adoption or station-level CNG displacement.
 
@@ -74,10 +100,10 @@ The external market context is sourced from the [IBEF Electric Vehicle Industry 
 **Important:** These national market indicators justify considering EV transition risk, but they do **not** establish a fixed demand-loss percentage for an individual Gujarat CNG station. The planner therefore labels its displacement rates as hypothetical scenario assumptions.
 
 
-### 6. Scenario history and reports
+### 9. Scenario history and reports
 Scenario endpoints support running scenarios, listing saved runs, retrieving scenario details and exporting CSV reports where available. The current demo uses local SQLite persistence; it is not a managed, production-grade shared database.
 
-### 7. Supporting CNG information pages
+### 10. Supporting CNG information pages
 The frontend also includes supplementary CNG-oriented information pages (such as CNG benefits, gas-price information, cost calculation and car-care content). These are supporting user-facing utilities/information, not the core station-demand forecasting or network-expansion decision engine. Any price or cost figures should be shown with a source, date and clear assumptions.
 
 ## Technology stack
@@ -136,6 +162,12 @@ Hosted base URL: `https://cng-network-intelligence-api.onrender.com`
 | GET | `/api/gis/stations` | Station records with usable coordinates |
 | GET | `/api/gis/stations/{station_id}/nearby` | Nearby station lookup |
 | GET | `/api/gis/candidate-analysis` | Candidate-location proximity diagnostics |
+| POST | `/api/gis/rank-candidates` | Spacing-based candidate screening |
+| POST | `/api/gis/rank-candidates-v2` | Multi-factor candidate location ranking |
+| GET | `/api/planner/sales-targets` | Sales target planning |
+| GET | `/api/planner/peak-risk` | Capacity and peak-risk planning |
+| GET | `/api/operations/stations` | Stations available for operational simulation |
+| GET | `/api/operations/queue-simulation/{station_id}` | 24-hour queue-pressure and stock-out scenario |
 | GET | `/api/forecast/stations` | Stations available for forecasting |
 | GET | `/api/forecast/station/{station_id}` | Station-level forecast |
 | GET | `/api/forecast/weekly/{station_id}` | Weekly station forecast |
