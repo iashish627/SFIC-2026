@@ -13,6 +13,7 @@ from backend.modules.scenarios.router import router as scenarios_router
 from backend.modules.data_quality.router import router as data_quality_router
 from backend.modules.ev_scenarios.router import router as ev_scenarios_router
 from backend.modules.planning.router import router as planning_router
+from backend.modules.operations.router import router as operations_router
 
 app = FastAPI(title="CNG Network Intelligence API", version="0.4.1")
 
@@ -68,6 +69,7 @@ app.include_router(scenarios_router)
 app.include_router(data_quality_router)
 app.include_router(ev_scenarios_router)
 app.include_router(planning_router)
+app.include_router(operations_router)
 
 
 @app.get("/health")
