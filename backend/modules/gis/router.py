@@ -4,6 +4,7 @@ import os
 from datetime import date
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 from .analysis import nearby_stations
 
 router = APIRouter(prefix="/api/gis", tags=["GIS"])
@@ -144,3 +145,42 @@ def candidate_analysis(latitude: float = Query(..., ge=-90, le=90),
             **nearby_stations(origin, stations, radii), "count": len(stations),
             "data_note": data_note(stations),
             "interpretation": "Straight-line proximity only; not road travel time or validated commercial viability."}
+
+
+class CandidateInput(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+class CandidateRankRequest(BaseModel):
+    candidates: list[CandidateInput] = Field(min_length=1, max_length=25)
+    minimum_spacing_km: float = Field(default=5, gt=0, le=100)
+
+@router.post("/rank-candidates")
+def rank_candidates(request: CandidateRankRequest):
+    """Rank user-supplied candidate coordinates using transparent spacing diagnostics.
+
+    This is a screening rank, not a demand, traffic or commercial viability score.
+    """
+    stations=mapped_stations()
+    if not stations:
+        raise HTTPException(status_code=404, detail="No mapped station records available")
+    ranked=[]
+    for c in request.candidates:
+        origin={"station_id":"__candidate__","latitude":c.latitude,"longitude":c.longitude}
+        analysis=nearby_stations(origin,stations,(request.minimum_spacing_km,))
+        nearby=analysis.get("nearby",[])
+        nearest=nearby[0] if nearby else None
+        nearest_distance=float(nearest.get("distance_km", request.minimum_spacing_km*2)) if nearest else request.minimum_spacing_km*2
+        within=sum(1 for x in nearby if float(x.get("distance_km",999))<request.minimum_spacing_km)
+        spacing_ok=nearest_distance>=request.minimum_spacing_km
+        # Transparent screening score: spacing only. No fabricated demand score.
+        score=round(min(100, nearest_distance/max(request.minimum_spacing_km,0.1)*50),1)
+        ranked.append({"name":c.name,"latitude":c.latitude,"longitude":c.longitude,
+            "nearest_station_distance_km":round(nearest_distance,2),"stations_within_spacing":within,
+            "minimum_spacing_km":request.minimum_spacing_km,"spacing_pass":spacing_ok,
+            "screening_score":score})
+    ranked.sort(key=lambda x:(x["spacing_pass"],x["nearest_station_distance_km"],-x["stations_within_spacing"]),reverse=True)
+    for i,row in enumerate(ranked,1): row["rank"]=i
+    return {"candidates":ranked,"method":"transparent_spacing_screen","data_note":data_note(stations),
+        "warning":"Ranking uses only user-supplied coordinates and straight-line spacing. It does not establish demand, traffic, land feasibility, catchment or financial viability."}
