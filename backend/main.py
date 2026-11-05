@@ -4,6 +4,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import RedirectResponse
 from backend.modules.gis.router import router as gis_router
 from backend.modules.dashboard.router import router as dashboard_router
 from backend.modules.simulation.router import router as simulator_router
@@ -46,6 +47,17 @@ async def security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     response.headers["Cache-Control"] = "no-store" if request.url.path.startswith("/api/") else "no-cache"
     return response
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {
+        "status": "healthy",
+        "service": "cng-network-intelligence",
+        "version": app.version,
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 app.include_router(gis_router)
