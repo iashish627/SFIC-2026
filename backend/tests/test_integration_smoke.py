@@ -13,6 +13,8 @@ def test_all_primary_api_modules_are_registered():
     assert client.get("/api/forecast/stations").status_code == 200
     assert client.get("/api/simulator/demo-inputs").status_code == 200
     assert client.get("/api/health/data").status_code == 200
+    assert client.get("/api/planner/sales-targets").status_code == 200
+    assert client.get("/api/planner/peak-risk").status_code == 200
 
 def test_simulator_and_forecast_work_on_same_demo_station():
     demo = client.get("/api/simulator/demo-inputs").json()
